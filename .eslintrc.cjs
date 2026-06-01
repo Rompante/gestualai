@@ -14,4 +14,15 @@ module.exports = {
     'react/prop-types': 'off',
     'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
   },
+  overrides: [
+    {
+      // API backend (Node) — sem React, com globais de Node.
+      files: ['server/**/*.js'],
+      env: { node: true, browser: false },
+      extends: ['eslint:recommended'],
+      rules: {
+        'no-unused-vars': ['warn', { argsIgnorePattern: '^_|^next$|^req$|^res$' }],
+      },
+    },
+  ],
 }

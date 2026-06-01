@@ -1,14 +1,41 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import CameraView from './components/CameraView.jsx'
 import TranslationPanel from './components/TranslationPanel.jsx'
 import ControlBar from './components/ControlBar.jsx'
+import AuthBar from './components/AuthBar.jsx'
 import { useGestureRecognition } from './hooks/useGestureRecognition.js'
+import { useAuth } from './context/AuthContext.jsx'
 import { speak } from './speech/speechSynthesis.js'
-import { saveTranslation } from './services/historyService.js'
+import { saveTranslation, fetchRecentTranslations } from './services/historyService.js'
+
+function toHistoryItem(row) {
+  return {
+    key: String(row.id),
+    text: row.text,
+    time: new Date(row.created_at).toLocaleTimeString('pt-PT', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }),
+  }
+}
 
 export default function App() {
   const [history, setHistory] = useState([])
   const [speechOn, setSpeechOn] = useState(true)
+  const { isAuthenticated } = useAuth()
+
+  // Ao autenticar, carrega o histórico persistido do utilizador.
+  useEffect(() => {
+    if (!isAuthenticated) return
+    let active = true
+    fetchRecentTranslations(50).then((rows) => {
+      if (active && rows.length) setHistory(rows.map(toHistoryItem))
+    })
+    return () => {
+      active = false
+    }
+  }, [isAuthenticated])
 
   const handleConfirm = useCallback(
     ({ gesture, confidence, source, expression }) => {
@@ -32,7 +59,7 @@ export default function App() {
 
       if (speechOn) speak(text)
 
-      // Persistência opcional (Supabase, se configurado).
+      // Persistência via API (apenas se autenticado; falha silenciosa caso contrário).
       saveTranslation({ gestureId: gesture.id, text, confidence, source })
     },
     [speechOn],
@@ -43,7 +70,7 @@ export default function App() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-4 py-6">
-      <header className="flex items-center justify-between">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">
             Gestual<span className="text-accent-500">AI</span>
@@ -52,6 +79,7 @@ export default function App() {
             Tradução de Língua Gestual Portuguesa — processada localmente no seu dispositivo.
           </p>
         </div>
+        <AuthBar />
       </header>
 
       {error && (

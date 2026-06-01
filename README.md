@@ -9,20 +9,45 @@ vídeo sai do dispositivo.
 
 ## Stack
 
+**Frontend (browser):**
 - **React + Vite** — interface e tooling
 - **MediaPipe Tasks Vision** (`@mediapipe/tasks-vision`) — marcos de mãos e rosto
 - **TensorFlow.js** — classificação do gesto (modelo treinado na Fase 2)
 - **Web Speech API** — síntese de voz em pt-PT
-- **Supabase** — perfis e histórico (opcional, Fase 3)
 - **Tailwind CSS** — estilos
+
+**Backend (`server/`):**
+- **Node + Express** — API REST (auth, perfis, histórico, modelo/vocabulário)
+- **Supabase/Postgres** (service-role) — base de dados e autenticação
+
+> A inferência (mãos, rosto, gestos) ocorre **sempre no browser**. A API trata
+> apenas de texto, perfis e configuração — **nunca recebe imagem/vídeo**.
 
 ## Começar
 
+**1. Frontend:**
+
 ```bash
 npm install
-cp .env.example .env   # opcional: configurar Supabase / caminho do modelo
+cp .env.example .env   # opcional em dev (o Vite faz proxy de /api → :8787)
 npm run dev            # abre em http://localhost:5173
 ```
+
+**2. API backend** (noutro terminal):
+
+```bash
+cd server
+npm install
+cp .env.example .env   # preencher SUPABASE_URL + chaves para ativar auth/histórico
+npm run dev            # API em http://localhost:8787
+```
+
+Sem credenciais Supabase, a API arranca na mesma e serve `vocabulary`,
+`model/manifest` e `health`; os endpoints de auth/histórico respondem 503.
+
+Para ativar a persistência: crie um projeto Supabase, execute
+[`server/db/schema.sql`](server/db/schema.sql) no SQL Editor, e preencha
+`server/.env`.
 
 Clique em **Iniciar câmara** e autorize o acesso à webcam. A app desenha os
 marcos das mãos e do rosto e tenta traduzir o gesto.
@@ -41,36 +66,57 @@ Ver `public/models/lgp-gestures/README.md` para o contrato do modelo.
 
 | Comando | Descrição |
 | --- | --- |
-| `npm run dev` | Servidor de desenvolvimento |
+| `npm run dev` | Servidor de desenvolvimento (frontend) |
 | `npm run build` | Build de produção (`dist/`) |
 | `npm run preview` | Pré-visualização do build |
-| `npm run lint` | ESLint |
+| `npm run lint` | ESLint (frontend + servidor) |
+| `cd server && npm run dev` | API backend (com reload) |
+| `cd server && npm test` | Testes da API (`node --test`) |
+
+## API (resumo)
+
+| Método | Rota | Auth | Função |
+| --- | --- | --- | --- |
+| GET | `/api/health` | — | Estado do servidor |
+| GET | `/api/vocabulary` | — | 20 gestos LGP + categorias |
+| GET | `/api/model/manifest` | — | Modelos TF.js disponíveis |
+| POST | `/api/auth/register`, `/api/auth/login` | — | Registo / login (Supabase Auth) |
+| GET/PUT | `/api/profile` | ✅ | Perfil do utilizador |
+| GET/POST/DELETE | `/api/history` | ✅ | Histórico de traduções (só texto) |
 
 ## Estrutura
 
 ```
-src/
-├── components/   # UI (câmara, painel de tradução, controlos)
+src/                  # FRONTEND
+├── components/   # UI (câmara, painel, controlos, AuthBar)
+├── context/      # AuthContext (sessão/JWT)
 ├── hooks/        # useGestureRecognition (loop de inferência)
 ├── vision/       # MediaPipe: landmarker, desenho, expressões faciais
 ├── ml/           # labels, extração de características, classificador
 ├── speech/       # síntese de voz (Web Speech API)
-├── data/         # cliente Supabase
-└── services/     # histórico de traduções
+├── data/         # apiClient (cliente da API backend)
+└── services/     # histórico de traduções (via API)
+
+server/               # API BACKEND (Node + Express)
+├── src/routes/   # health, vocabulary, model, auth, profile, history
+├── src/middleware/ # requireAuth, errorHandler
+├── db/schema.sql # esquema Supabase/Postgres
+└── test/         # testes da API
 ```
 
 Detalhes em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Privacidade
 
-Todo o processamento de imagem ocorre **localmente**. Os modelos do MediaPipe e
-o runtime WASM são carregados a partir de CDN, mas **as imagens da câmara nunca
-são enviadas** para servidores. A persistência (opcional) guarda apenas o
-**texto** da tradução, nunca vídeo.
+Todo o processamento de imagem ocorre **localmente** no browser. Os modelos do
+MediaPipe e o runtime WASM são carregados a partir de CDN, mas **as imagens da
+câmara nunca são enviadas** para servidores. A API backend recebe apenas o
+**texto** das traduções e dados de perfil — nunca vídeo (o `express.json` está
+limitado a 256 kB propositadamente).
 
 ## Roadmap
 
 - **Fase 0** — Vocabulário de 20 gestos definido (`src/ml/labels.js`).
 - **Fase 1** — ✅ Fundação e captura (React+Vite, câmara, MediaPipe).
 - **Fase 2** — Modelo LGP treinado, expressões gramaticais, voz.
-- **Fase 3** — Persistência (Supabase) e refinamento da interface.
+- **Fase 3** — ✅ Persistência via API (Node + Express + Supabase) e auth; refinamento contínuo da interface.

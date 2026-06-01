@@ -1,30 +1,26 @@
 /**
- * Histórico de traduções (Fase 3).
+ * Histórico de traduções (Fase 3) — via API backend.
  *
- * Estratégia híbrida: as entradas são sempre mantidas em memória durante a
- * sessão; se o Supabase estiver configurado, são também persistidas na tabela
- * `translation_history` (ver esquema sugerido em docs/ARCHITECTURE.md).
+ * A persistência exige autenticação. Quando o utilizador não está autenticado
+ * ou a API está indisponível, as funções falham de forma silenciosa: o
+ * histórico permanece apenas em memória durante a sessão (gerido pelo App).
  */
-import { supabase, isSupabaseConfigured } from '../data/supabaseClient.js'
-
-const TABLE = 'translation_history'
+import { api, getAuthToken } from '../data/apiClient.js'
 
 /**
- * Persiste uma entrada de tradução.
+ * Persiste uma entrada de tradução (apenas texto — nunca imagem/vídeo).
  * @param {{ gestureId: string, text: string, confidence: number, source: string }} entry
  * @returns {Promise<{ persisted: boolean }>}
  */
 export async function saveTranslation(entry) {
-  if (!isSupabaseConfigured) return { persisted: false }
+  if (!getAuthToken()) return { persisted: false }
   try {
-    const { error } = await supabase.from(TABLE).insert({
-      gesture_id: entry.gestureId,
+    await api.addHistory({
+      gestureId: entry.gestureId,
       text: entry.text,
       confidence: entry.confidence,
       source: entry.source,
-      created_at: new Date().toISOString(),
     })
-    if (error) throw error
     return { persisted: true }
   } catch (err) {
     console.warn('[GestualAI] Falha ao persistir tradução:', err.message)
@@ -33,20 +29,17 @@ export async function saveTranslation(entry) {
 }
 
 /**
- * Lê as traduções mais recentes (quando o Supabase está configurado).
+ * Lê as traduções mais recentes do utilizador autenticado.
  * @param {number} limit
  * @returns {Promise<Array>}
  */
 export async function fetchRecentTranslations(limit = 50) {
-  if (!isSupabaseConfigured) return []
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(limit)
-  if (error) {
-    console.warn('[GestualAI] Falha ao ler histórico:', error.message)
+  if (!getAuthToken()) return []
+  try {
+    const data = await api.getHistory(limit)
+    return data.history ?? []
+  } catch (err) {
+    console.warn('[GestualAI] Falha ao ler histórico:', err.message)
     return []
   }
-  return data ?? []
 }
