@@ -17,6 +17,6 @@ export const supabase = isSupabaseConfigured ? createClient(url, anonKey) : null
 if (!isSupabaseConfigured) {
   console.info(
     '[GestualAI] Supabase não configurado — persistência remota desativada. ' +
-      'Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY em .env para ativar.',
+      'https://sthimqqzjwrdewweubbq.supabase.co',
   )
 }

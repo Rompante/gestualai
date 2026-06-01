@@ -25,3 +25,5 @@ Enquanto este ficheiro não existir, a aplicação usa automaticamente o
 classificador heurístico de demonstração (`src/ml/gestureClassifier.js`).
 
 A localização pode ser alterada via `VITE_GESTURE_MODEL_URL` (ver `.env.example`).
+
+https://sthimqqzjwrdewweubbq.supabase.co/rest/v1/
