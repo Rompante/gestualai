@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createHandLandmarker, createFaceLandmarker } from '../vision/landmarker.js'
 import { clearCanvas, drawHands, drawFaces } from '../vision/drawing.js'
-import { loadGestureModel, classify } from '../ml/gestureClassifier.js'
+import { loadGestureModel, reloadGestureModel, classify } from '../ml/gestureClassifier.js'
+import { normalizeHandLandmarks } from '../ml/featureExtraction.js'
 import { interpretExpression } from '../vision/faceExpressions.js'
 
 /**
@@ -16,7 +17,7 @@ import { interpretExpression } from '../vision/faceExpressions.js'
  *           onConfirm?: (g) => void }} [options]
  */
 export function useGestureRecognition(options = {}) {
-  const { confirmFrames = 8, minConfidence = 0.5, onConfirm } = options
+  const { confirmFrames = 8, minConfidence = 0.5, onConfirm, onFeatures } = options
 
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
@@ -44,11 +45,13 @@ export function useGestureRecognition(options = {}) {
     fps: 0,
   })
 
-  // Mantemos o callback mais recente sem reiniciar o loop.
+  // Mantemos os callbacks mais recentes sem reiniciar o loop.
   const onConfirmRef = useRef(onConfirm)
+  const onFeaturesRef = useRef(onFeatures)
   useEffect(() => {
     onConfirmRef.current = onConfirm
-  }, [onConfirm])
+    onFeaturesRef.current = onFeatures
+  }, [onConfirm, onFeatures])
 
   const tick = useCallback(() => {
     const video = videoRef.current
@@ -87,6 +90,12 @@ export function useGestureRecognition(options = {}) {
         gesture = out.gesture
         confidence = out.confidence
         source = out.source
+
+        // Emite o vetor de características normalizado (usado no modo de treino).
+        if (onFeaturesRef.current) {
+          const feats = normalizeHandLandmarks(handResult.landmarks[0])
+          if (feats) onFeaturesRef.current(feats)
+        }
       }
 
       // Expressão facial.
@@ -166,6 +175,13 @@ export function useGestureRecognition(options = {}) {
     setStatus('idle')
   }, [])
 
+  // Recarrega o modelo (ex.: depois de treinar um modelo novo no browser).
+  const refreshModel = useCallback(async () => {
+    const m = await reloadGestureModel()
+    setUsingModel(Boolean(m))
+    return Boolean(m)
+  }, [])
+
   useEffect(() => {
     return () => {
       cancelAnimationFrame(rafRef.current)
@@ -174,5 +190,5 @@ export function useGestureRecognition(options = {}) {
     }
   }, [])
 
-  return { videoRef, canvasRef, status, error, usingModel, live, start, stop }
+  return { videoRef, canvasRef, status, error, usingModel, live, start, stop, refreshModel }
 }

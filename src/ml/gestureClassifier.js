@@ -18,38 +18,65 @@
 import * as tf from '@tensorflow/tfjs'
 import { GESTURE_LABELS, NUM_CLASSES, gestureByIndex } from './labels.js'
 import { normalizeHandLandmarks, distance } from './featureExtraction.js'
+import { TRAINED_MODEL_STORE } from './trainModel.js'
 
 const MODEL_URL = import.meta.env.VITE_GESTURE_MODEL_URL || '/models/lgp-gestures/model.json'
 
 let model = null
 let modelLoadAttempted = false
 
+/** Validação defensiva da forma de saída do modelo. */
+function validate(loaded) {
+  const outputUnits = loaded.outputs[0].shape.at(-1)
+  if (outputUnits !== NUM_CLASSES) {
+    console.warn(
+      `[GestualAI] Modelo tem ${outputUnits} classes, esperadas ${NUM_CLASSES}. A ignorar.`,
+    )
+    loaded.dispose?.()
+    return null
+  }
+  return loaded
+}
+
 /**
- * Tenta carregar o modelo TensorFlow.js. Falha silenciosamente (devolve null)
- * caso o modelo ainda não tenha sido publicado — nesse caso o sistema recorre
- * ao classificador heurístico.
+ * Carrega o modelo TF.js, por ordem de prioridade:
+ *   1. Modelo treinado no browser (IndexedDB), via modo de treino.
+ *   2. Modelo publicado em MODEL_URL (public/models ou /api/model).
+ * Se nenhum existir, devolve null e o sistema usa o classificador heurístico.
  */
 export async function loadGestureModel() {
   if (modelLoadAttempted) return model
   modelLoadAttempted = true
+
+  // 1. Modelo treinado no browser.
   try {
-    const loaded = await tf.loadLayersModel(MODEL_URL)
-    // Validação defensiva da forma de saída.
-    const outputUnits = loaded.outputs[0].shape.at(-1)
-    if (outputUnits !== NUM_CLASSES) {
-      console.warn(
-        `[GestualAI] Modelo carregado tem ${outputUnits} classes, esperadas ${NUM_CLASSES}. A ignorar.`,
-      )
-      loaded.dispose?.()
-      return null
+    const local = await tf.loadLayersModel(TRAINED_MODEL_STORE)
+    model = validate(local)
+    if (model) {
+      console.info('[GestualAI] Modelo treinado no browser carregado.')
+      return model
     }
-    model = loaded
-    console.info('[GestualAI] Modelo de gestos LGP carregado.')
   } catch {
-    // Sem modelo publicado — comportamento esperado durante o desenvolvimento.
+    // Nenhum modelo local — segue para o publicado.
+  }
+
+  // 2. Modelo publicado.
+  try {
+    const remote = await tf.loadLayersModel(MODEL_URL)
+    model = validate(remote)
+    if (model) console.info('[GestualAI] Modelo de gestos LGP carregado de', MODEL_URL)
+  } catch {
     model = null
   }
   return model
+}
+
+/** Força nova tentativa de carregamento (ex.: após treinar um modelo novo). */
+export async function reloadGestureModel() {
+  model?.dispose?.()
+  model = null
+  modelLoadAttempted = false
+  return loadGestureModel()
 }
 
 export function isModelLoaded() {

@@ -53,15 +53,32 @@ correr `server/db/schema.sql`, preencher `server/.env`) e valide com
 Clique em **Iniciar câmara** e autorize o acesso à webcam. A app desenha os
 marcos das mãos e do rosto e tenta traduzir o gesto.
 
-### Sem modelo treinado?
+### Treinar o seu próprio modelo (modo "Treinar")
 
-Enquanto o modelo LGP não estiver publicado em
-`public/models/lgp-gestures/`, a app usa um **classificador heurístico de
-demonstração** que reconhece algumas poses simples da mão (mão aberta → «Olá»,
-punho → «Não», polegar para cima → «Estou bem», «V» → «Talvez», etc.). Isto
-permite validar todo o fluxo de ponta a ponta desde a Fase 1.
+Sem modelo treinado, a app usa um **classificador heurístico de demonstração**
+que só reconhece poses simples da mão (mão aberta → «Olá», polegar → «Estou
+bem», etc.) — **não é LGP real**, é apenas um marcador de lugar.
 
-Ver `public/models/lgp-gestures/README.md` para o contrato do modelo.
+Para reconhecer os 20 gestos a sério, use o separador **Treinar** (tudo no
+browser, sem ferramentas externas):
+
+1. Inicie a câmara e escolha um gesto no seletor.
+2. Faça o gesto e clique **Gravar amostras** (recomendado: 50–100 por gesto,
+   com variações de ângulo/posição). Repita para cada gesto.
+3. Clique **Treinar com o dataset** — treina um modelo TensorFlow.js e guarda-o
+   no browser (IndexedDB).
+4. Volte a **Traduzir**: o badge passa a **«Modelo LGP»** e a classificação usa
+   o seu modelo.
+
+O dataset pode ser exportado/importado (JSON) e o modelo treinado pode ser
+exportado como ficheiros (`model.json` + pesos) para colocar em
+`public/models/lgp-gestures/` e distribuir a outros dispositivos — ver
+`public/models/lgp-gestures/README.md` para o contrato (entrada `[1,63]`,
+saída `[1,20]`).
+
+> **Nota:** este classificador usa uma única pose (uma mão, um frame). Sinais
+> que dependem de **movimento**, **duas mãos** ou **expressão facial** precisam
+> de um modelo temporal — extensão prevista para iterações seguintes.
 
 ## Scripts
 
