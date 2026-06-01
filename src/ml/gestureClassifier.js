@@ -1,0 +1,142 @@
+/**
+ * Motor de classificação de gestos LGP.
+ *
+ * Arquitetura em duas camadas:
+ *
+ *   1. Modelo treinado (Fase 2) — carregado via TensorFlow.js a partir de
+ *      `VITE_GESTURE_MODEL_URL`. Espera um vetor de 63 características
+ *      (ver featureExtraction.js) e devolve uma distribuição sobre as
+ *      NUM_CLASSES classes de `labels.js`.
+ *
+ *   2. Classificador heurístico (demonstração) — usado automaticamente
+ *      enquanto não existir modelo treinado. Reconhece um pequeno conjunto
+ *      de poses da mão a partir da geometria dos marcos, para que a aplicação
+ *      seja demonstrável de ponta a ponta desde a Fase 1.
+ *
+ * A interface pública é idêntica nos dois casos: `classify(landmarks)`.
+ */
+import * as tf from '@tensorflow/tfjs'
+import { GESTURE_LABELS, NUM_CLASSES, gestureByIndex } from './labels.js'
+import { normalizeHandLandmarks, distance } from './featureExtraction.js'
+
+const MODEL_URL = import.meta.env.VITE_GESTURE_MODEL_URL || '/models/lgp-gestures/model.json'
+
+let model = null
+let modelLoadAttempted = false
+
+/**
+ * Tenta carregar o modelo TensorFlow.js. Falha silenciosamente (devolve null)
+ * caso o modelo ainda não tenha sido publicado — nesse caso o sistema recorre
+ * ao classificador heurístico.
+ */
+export async function loadGestureModel() {
+  if (modelLoadAttempted) return model
+  modelLoadAttempted = true
+  try {
+    const loaded = await tf.loadLayersModel(MODEL_URL)
+    // Validação defensiva da forma de saída.
+    const outputUnits = loaded.outputs[0].shape.at(-1)
+    if (outputUnits !== NUM_CLASSES) {
+      console.warn(
+        `[GestualAI] Modelo carregado tem ${outputUnits} classes, esperadas ${NUM_CLASSES}. A ignorar.`,
+      )
+      loaded.dispose?.()
+      return null
+    }
+    model = loaded
+    console.info('[GestualAI] Modelo de gestos LGP carregado.')
+  } catch {
+    // Sem modelo publicado — comportamento esperado durante o desenvolvimento.
+    model = null
+  }
+  return model
+}
+
+export function isModelLoaded() {
+  return model !== null
+}
+
+/**
+ * Classifica os marcos de uma mão.
+ * @param {Array<{x,y,z}>} landmarks - 21 marcos de uma mão.
+ * @returns {{ gesture: object|null, confidence: number, source: 'model'|'heuristic' }}
+ */
+export function classify(landmarks) {
+  if (model) {
+    const result = classifyWithModel(landmarks)
+    if (result) return result
+  }
+  return { ...classifyHeuristic(landmarks), source: 'heuristic' }
+}
+
+function classifyWithModel(landmarks) {
+  const features = normalizeHandLandmarks(landmarks)
+  if (!features) return null
+  return tf.tidy(() => {
+    const input = tf.tensor2d([features])
+    const output = model.predict(input)
+    const probs = output.dataSync()
+    let best = 0
+    for (let i = 1; i < probs.length; i++) if (probs[i] > probs[best]) best = i
+    return {
+      gesture: gestureByIndex(best),
+      confidence: probs[best],
+      source: 'model',
+    }
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Classificador heurístico de demonstração
+// ---------------------------------------------------------------------------
+
+const FINGER = {
+  thumb: { tip: 4, pip: 2, mcp: 1 },
+  index: { tip: 8, pip: 6, mcp: 5 },
+  middle: { tip: 12, pip: 10, mcp: 9 },
+  ring: { tip: 16, pip: 14, mcp: 13 },
+  pinky: { tip: 20, pip: 18, mcp: 17 },
+}
+
+/** Devolve um objeto {thumb,index,middle,ring,pinky} de booleanos (dedo esticado?). */
+function extendedFingers(lm) {
+  const wrist = lm[0]
+  const state = {}
+  for (const [name, j] of Object.entries(FINGER)) {
+    if (name === 'thumb') {
+      // O polegar move-se lateralmente: comparamos a distância tip↔mcp vs pip↔mcp.
+      state[name] = distance(lm[j.tip], lm[j.mcp]) > distance(lm[j.pip], lm[j.mcp]) * 1.4
+    } else {
+      // Esticado se a ponta estiver mais longe do pulso do que a articulação PIP.
+      state[name] = distance(lm[j.tip], wrist) > distance(lm[j.pip], wrist) * 1.05
+    }
+  }
+  return state
+}
+
+/**
+ * Mapeamento de POSES DE DEMONSTRAÇÃO → gestos do vocabulário.
+ * NOTA: estes mapeamentos são apenas ilustrativos (Fase 1) e serão substituídos
+ * pelo modelo treinado em dados reais de LGP (Fase 2).
+ */
+function classifyHeuristic(landmarks) {
+  if (!landmarks || landmarks.length !== 21) {
+    return { gesture: null, confidence: 0 }
+  }
+  const f = extendedFingers(landmarks)
+  const count = Object.values(f).filter(Boolean).length
+
+  let id = null
+  if (count === 5) id = 'ola' // mão aberta (aceno)
+  else if (count === 0) id = 'nao' // punho fechado
+  else if (f.thumb && count === 1) id = 'bem' // polegar para cima
+  else if (f.index && count === 1) id = 'esperar' // indicador
+  else if (f.index && f.middle && count === 2) id = 'talvez' // "V"
+  else if (f.index && f.pinky && count === 2) id = 'emergencia' // indicador + mindinho
+  else if (f.thumb && f.index && f.pinky && count === 3) id = 'ajuda'
+
+  if (!id) return { gesture: null, confidence: 0 }
+  const gesture = GESTURE_LABELS.find((g) => g.id === id) ?? null
+  // Confiança fixa moderada — sinaliza que é uma deteção heurística, não probabilística.
+  return { gesture, confidence: 0.6 }
+}
