@@ -45,9 +45,10 @@ npm run dev            # API em http://localhost:8787
 Sem credenciais Supabase, a API arranca na mesma e serve `vocabulary`,
 `model/manifest` e `health`; os endpoints de auth/histórico respondem 503.
 
-Para ativar a persistência: crie um projeto Supabase, execute
-[`server/db/schema.sql`](server/db/schema.sql) no SQL Editor, e preencha
-`server/.env`.
+Para ativar a persistência siga o guia
+[`server/docs/SUPABASE_SETUP.md`](server/docs/SUPABASE_SETUP.md) (criar projeto,
+correr `server/db/schema.sql`, preencher `server/.env`) e valide com
+`cd server && npm run smoke`.
 
 Clique em **Iniciar câmara** e autorize o acesso à webcam. A app desenha os
 marcos das mãos e do rosto e tenta traduzir o gesto.
@@ -72,6 +73,7 @@ Ver `public/models/lgp-gestures/README.md` para o contrato do modelo.
 | `npm run lint` | ESLint (frontend + servidor) |
 | `cd server && npm run dev` | API backend (com reload) |
 | `cd server && npm test` | Testes da API (`node --test`) |
+| `cd server && npm run smoke` | Validação ponta-a-ponta da API (auth/perfil/histórico) |
 
 ## API (resumo)
 
