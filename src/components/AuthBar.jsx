@@ -18,7 +18,7 @@ export default function AuthBar() {
   if (!ready) return null
 
   if (isAuthenticated) {
-    const name = user?.display_name || user?.email || 'Sessão iniciada'
+    const name = user?.displayName || user?.email || 'Sessão iniciada'
     return (
       <div className="flex items-center gap-3 text-sm">
         <span className="text-slate-300">{name}</span>

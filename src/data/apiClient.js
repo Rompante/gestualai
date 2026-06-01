@@ -31,8 +31,10 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
   const isJson = res.headers.get('content-type')?.includes('application/json')
   const data = isJson ? await res.json() : null
   if (!res.ok) {
-    const message = data?.error || `Erro ${res.status}`
-    const err = new Error(message)
+    // Em erro, tenta a mensagem JSON; senão o corpo de texto; senão genérica.
+    let message = data?.error
+    if (!message && !isJson) message = (await res.text().catch(() => '')) || null
+    const err = new Error(message || `Erro ${res.status}`)
     err.status = res.status
     throw err
   }

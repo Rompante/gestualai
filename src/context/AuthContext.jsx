@@ -4,6 +4,17 @@ import { api, setAuthToken } from '../data/apiClient.js'
 const AuthContext = createContext(null)
 const TOKEN_KEY = 'gestualai.token'
 
+// Normaliza o utilizador para uma forma consistente { id, email, displayName },
+// quer venha do login (auth user) quer do restauro (perfil).
+function normalizeUser(source) {
+  if (!source) return null
+  return {
+    id: source.id ?? null,
+    email: source.email ?? null,
+    displayName: source.display_name ?? source.user_metadata?.display_name ?? null,
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [ready, setReady] = useState(false)
@@ -18,7 +29,7 @@ export function AuthProvider({ children }) {
     setAuthToken(token)
     api
       .getProfile()
-      .then((d) => setUser(d.profile))
+      .then((d) => setUser(normalizeUser(d?.profile)))
       .catch(() => {
         localStorage.removeItem(TOKEN_KEY)
         setAuthToken(null)
@@ -28,11 +39,14 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const d = await api.login(email, password)
-    if (!d.access_token) throw new Error('Sessão não iniciada (confirme o email, se aplicável).')
+    if (!d?.access_token) {
+      throw new Error('Sessão não iniciada (confirme o email, se aplicável).')
+    }
     localStorage.setItem(TOKEN_KEY, d.access_token)
     setAuthToken(d.access_token)
-    setUser(d.user)
-    return d.user
+    const u = normalizeUser(d.user)
+    setUser(u)
+    return u
   }, [])
 
   const register = useCallback(

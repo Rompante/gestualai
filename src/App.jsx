@@ -61,12 +61,18 @@ export default function App() {
     selectedRef.current = selectedGestureId
   }, [selectedGestureId])
 
-  // Ao autenticar, carrega o histórico persistido do utilizador.
+  // Ao autenticar, carrega o histórico persistido e funde-o com as traduções
+  // feitas nesta sessão antes do login (chaves locais contêm '-').
   useEffect(() => {
     if (!isAuthenticated) return
     let active = true
     fetchRecentTranslations(50).then((rows) => {
-      if (active && rows.length) setHistory(rows.map(toHistoryItem))
+      if (!active) return
+      const serverItems = rows.map(toHistoryItem)
+      setHistory((prev) => {
+        const localOnly = prev.filter((p) => p.key.includes('-'))
+        return [...localOnly, ...serverItems].slice(0, 50)
+      })
     })
     return () => {
       active = false
@@ -104,10 +110,12 @@ export default function App() {
   const handleFeatures = useCallback((features) => {
     if (modeRef.current !== 'train' || !recordingRef.current) return
     dataset.addSample(selectedRef.current, features)
-    // Atualiza as contagens com throttle (~5x/s) para não re-renderizar a cada frame.
+    // Atualiza contagens e persiste com throttle (~5x/s) — evita re-render por
+    // frame e garante que os dados não se perdem se a gravação não for parada.
     const now = performance.now()
     if (now - lastCountUpdate.current > 200) {
       lastCountUpdate.current = now
+      dataset.commit()
       setCounts(dataset.counts())
       setTotalSamples(dataset.totalSamples())
     }
@@ -153,6 +161,7 @@ export default function App() {
           onEpoch: (epoch, total, logs) =>
             setTraining({
               status: 'training',
+              epoch,
               progress: epoch / total,
               totalEpochs: total,
               acc: logs.acc ?? logs.accuracy,

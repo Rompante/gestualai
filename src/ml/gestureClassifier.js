@@ -17,7 +17,8 @@
  */
 import * as tf from '@tensorflow/tfjs'
 import { GESTURE_LABELS, NUM_CLASSES, gestureByIndex } from './labels.js'
-import { normalizeHandLandmarks, distance } from './featureExtraction.js'
+import { distance } from './featureExtraction.js'
+import { TEMPORAL_FEATURE_LENGTH } from './temporalFeatures.js'
 import { TRAINED_MODEL_STORE } from './trainModel.js'
 
 const MODEL_URL = import.meta.env.VITE_GESTURE_MODEL_URL || '/models/lgp-gestures/model.json'
@@ -25,12 +26,14 @@ const MODEL_URL = import.meta.env.VITE_GESTURE_MODEL_URL || '/models/lgp-gesture
 let model = null
 let modelLoadAttempted = false
 
-/** Validação defensiva da forma de saída do modelo. */
+/** Validação defensiva das formas de entrada/saída do modelo. */
 function validate(loaded) {
   const outputUnits = loaded.outputs[0].shape.at(-1)
-  if (outputUnits !== NUM_CLASSES) {
+  const inputUnits = loaded.inputs[0].shape.at(-1)
+  if (outputUnits !== NUM_CLASSES || inputUnits !== TEMPORAL_FEATURE_LENGTH) {
     console.warn(
-      `[GestualAI] Modelo tem ${outputUnits} classes, esperadas ${NUM_CLASSES}. A ignorar.`,
+      `[GestualAI] Modelo incompatível (entrada ${inputUnits}/${TEMPORAL_FEATURE_LENGTH}, ` +
+        `saída ${outputUnits}/${NUM_CLASSES}). A ignorar.`,
     )
     loaded.dispose?.()
     return null
@@ -84,21 +87,21 @@ export function isModelLoaded() {
 }
 
 /**
- * Classifica os marcos de uma mão.
- * @param {Array<{x,y,z}>} landmarks - 21 marcos de uma mão.
+ * Classifica um gesto.
+ * @param {Array<{x,y,z}>} landmarks - 21 marcos da mão (usado pela heurística).
+ * @param {number[]|null} temporalFeature - descritor espácio-temporal (usado pelo modelo).
  * @returns {{ gesture: object|null, confidence: number, source: 'model'|'heuristic' }}
  */
-export function classify(landmarks) {
-  if (model) {
-    const result = classifyWithModel(landmarks)
+export function classify(landmarks, temporalFeature) {
+  if (model && temporalFeature) {
+    const result = classifyWithModel(temporalFeature)
     if (result) return result
   }
   return { ...classifyHeuristic(landmarks), source: 'heuristic' }
 }
 
-function classifyWithModel(landmarks) {
-  const features = normalizeHandLandmarks(landmarks)
-  if (!features) return null
+function classifyWithModel(features) {
+  if (!features || features.length !== TEMPORAL_FEATURE_LENGTH) return null
   return tf.tidy(() => {
     const input = tf.tensor2d([features])
     const output = model.predict(input)

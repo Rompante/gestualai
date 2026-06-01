@@ -10,14 +10,15 @@ public/models/lgp-gestures/
 
 ## Origem do modelo
 
-Treine o modelo no **Teachable Machine** ou no **MediaPipe Studio** sobre as
-características de mão normalizadas (vetor de 63 valores — ver
-`src/ml/featureExtraction.js`) e exporte para o formato TensorFlow.js
-(`tf.loadLayersModel`).
+A forma mais simples de o gerar é o **modo "Treinar"** da própria app, que
+treina e exporta no formato TensorFlow.js (`tf.loadLayersModel`). Em
+alternativa, treine externamente respeitando o contrato abaixo.
 
 ## Contrato esperado
 
-- **Entrada:** tensor `[1, 63]` (21 marcos × 3 eixos, normalizados).
+- **Entrada:** tensor `[1, 189]` — descritor espácio-temporal de uma janela de
+  frames: média + desvio-padrão + deslocamento dos 63 marcos normalizados
+  (ver `src/ml/temporalFeatures.js`).
 - **Saída:** tensor `[1, 20]` — distribuição softmax sobre as 20 classes
   definidas, **pela mesma ordem** de `src/ml/labels.js`.
 

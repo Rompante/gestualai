@@ -7,9 +7,9 @@
  * só são persistidas em `commit()` (evita escritas a cada frame).
  */
 import { GESTURE_LABELS } from './labels.js'
-import { FEATURE_LENGTH } from './featureExtraction.js'
+import { TEMPORAL_FEATURE_LENGTH } from './temporalFeatures.js'
 
-const KEY = 'gestualai.dataset.v1'
+const KEY = 'gestualai.dataset.v2'
 
 function load() {
   try {
@@ -31,10 +31,10 @@ function persist() {
 
 /** Acrescenta uma amostra em memória (sem persistir — chame commit() depois). */
 export function addSample(gestureId, features) {
-  if (!features || features.length !== FEATURE_LENGTH) return
+  if (!features || features.length !== TEMPORAL_FEATURE_LENGTH) return
   if (!data[gestureId]) data[gestureId] = []
-  // Arredonda para 4 casas para poupar espaço de armazenamento.
-  data[gestureId].push(features.map((v) => Math.round(v * 1e4) / 1e4))
+  // Arredonda para 3 casas para poupar espaço de armazenamento.
+  data[gestureId].push(features.map((v) => Math.round(v * 1e3) / 1e3))
 }
 
 /** Persiste o estado atual em localStorage. */

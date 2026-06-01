@@ -130,8 +130,7 @@ export default function TrainingView({
               />
             </div>
             <p className="mt-1 text-xs text-slate-400">
-              Época {Math.round((training.progress || 0) * (training.totalEpochs || 50))}/
-              {training.totalEpochs || 50}
+              Época {training.epoch || 0}/{training.totalEpochs || 50}
               {training.acc != null && ` · precisão ${Math.round(training.acc * 100)}%`}
             </p>
           </div>

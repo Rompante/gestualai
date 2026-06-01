@@ -3,6 +3,7 @@ import { createHandLandmarker, createFaceLandmarker } from '../vision/landmarker
 import { clearCanvas, drawHands, drawFaces } from '../vision/drawing.js'
 import { loadGestureModel, reloadGestureModel, classify } from '../ml/gestureClassifier.js'
 import { normalizeHandLandmarks } from '../ml/featureExtraction.js'
+import { computeTemporalFeature, WINDOW } from '../ml/temporalFeatures.js'
 import { interpretExpression } from '../vision/faceExpressions.js'
 
 /**
@@ -30,8 +31,20 @@ export function useGestureRecognition(options = {}) {
   const candidateRef = useRef({ id: null, count: 0 })
   const confirmedIdRef = useRef(null)
 
-  // FPS.
-  const fpsRef = useRef({ frames: 0, last: performance.now() })
+  // Janela deslizante dos últimos frames (vetores de 63 marcos) para o
+  // descritor espácio-temporal. Limpa-se quando a mão desaparece.
+  const frameBufferRef = useRef([])
+
+  // FPS (value mantém o último valor calculado, evitando ler `live` no loop).
+  const fpsRef = useRef({ frames: 0, last: performance.now(), value: 0 })
+
+  // Reinicia o estado transitório do reconhecimento (entre paragens/arranques).
+  const resetState = useCallback(() => {
+    frameBufferRef.current = []
+    candidateRef.current = { id: null, count: 0 }
+    confirmedIdRef.current = null
+    fpsRef.current = { frames: 0, last: performance.now(), value: 0 }
+  }, [])
 
   const [status, setStatus] = useState('idle') // idle | loading | running | error
   const [error, setError] = useState(null)
@@ -86,16 +99,30 @@ export function useGestureRecognition(options = {}) {
       let confidence = 0
       let source = 'heuristic'
       if (handResult?.landmarks?.length) {
-        const out = classify(handResult.landmarks[0])
+        const landmarks = handResult.landmarks[0]
+
+        // Atualiza a janela deslizante com o vetor de marcos deste frame.
+        const f63 = normalizeHandLandmarks(landmarks)
+        const buffer = frameBufferRef.current
+        if (f63) {
+          buffer.push(f63)
+          if (buffer.length > WINDOW) buffer.shift()
+        }
+        const temporalFeature = buffer.length ? computeTemporalFeature(buffer) : null
+
+        const out = classify(landmarks, temporalFeature)
         gesture = out.gesture
         confidence = out.confidence
         source = out.source
 
-        // Emite o vetor de características normalizado (usado no modo de treino).
-        if (onFeaturesRef.current) {
-          const feats = normalizeHandLandmarks(handResult.landmarks[0])
-          if (feats) onFeaturesRef.current(feats)
+        // Emite o descritor para captura (modo de treino) apenas com a janela
+        // cheia — evita amostras degeneradas (sem movimento) no aquecimento.
+        if (onFeaturesRef.current && temporalFeature && buffer.length === WINDOW) {
+          onFeaturesRef.current(temporalFeature)
         }
+      } else {
+        // Sem mão: reinicia a janela para não misturar gestos distintos.
+        frameBufferRef.current = []
       }
 
       // Expressão facial.
@@ -124,12 +151,11 @@ export function useGestureRecognition(options = {}) {
       }
       if (!candidateId) confirmedIdRef.current = null
 
-      // FPS (média por segundo).
+      // FPS (média por segundo) — guardado em ref para não depender de `live`.
       const f = fpsRef.current
       f.frames += 1
-      let fps = live.fps
       if (now - f.last >= 1000) {
-        fps = Math.round((f.frames * 1000) / (now - f.last))
+        f.value = Math.round((f.frames * 1000) / (now - f.last))
         f.frames = 0
         f.last = now
       }
@@ -140,7 +166,7 @@ export function useGestureRecognition(options = {}) {
         source,
         handsDetected: handResult?.landmarks?.length ?? 0,
         expression,
-        fps,
+        fps: f.value,
       })
     }
 
@@ -161,6 +187,8 @@ export function useGestureRecognition(options = {}) {
       faceLandmarkerRef.current = face
       const model = await loadGestureModel()
       setUsingModel(Boolean(model))
+      resetState()
+      lastVideoTimeRef.current = -1
       setStatus('running')
       rafRef.current = requestAnimationFrame(tick)
     } catch (err) {
@@ -168,12 +196,13 @@ export function useGestureRecognition(options = {}) {
       setError(err.message || 'Falha ao inicializar os modelos de visão.')
       setStatus('error')
     }
-  }, [status, tick])
+  }, [status, tick, resetState])
 
   const stop = useCallback(() => {
     cancelAnimationFrame(rafRef.current)
+    resetState()
     setStatus('idle')
-  }, [])
+  }, [resetState])
 
   // Recarrega o modelo (ex.: depois de treinar um modelo novo no browser).
   const refreshModel = useCallback(async () => {

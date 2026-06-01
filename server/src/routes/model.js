@@ -15,9 +15,13 @@ router.get('/manifest', (req, res) => {
   const models = []
   if (existsSync(dir)) {
     for (const name of readdirSync(dir)) {
-      const modelPath = path.join(dir, name)
-      if (statSync(modelPath).isDirectory() && existsSync(path.join(modelPath, 'model.json'))) {
-        models.push({ name, url: `/api/model/${name}/model.json` })
+      try {
+        const modelPath = path.join(dir, name)
+        if (statSync(modelPath).isDirectory() && existsSync(path.join(modelPath, 'model.json'))) {
+          models.push({ name, url: `/api/model/${name}/model.json` })
+        }
+      } catch {
+        // Ignora entradas inacessíveis (ex.: symlink quebrado, corrida de I/O).
       }
     }
   }

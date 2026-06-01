@@ -7,7 +7,7 @@
  */
 import * as tf from '@tensorflow/tfjs'
 import { NUM_CLASSES } from './labels.js'
-import { FEATURE_LENGTH } from './featureExtraction.js'
+import { TEMPORAL_FEATURE_LENGTH } from './temporalFeatures.js'
 
 /** Localização do modelo treinado no browser. */
 export const TRAINED_MODEL_STORE = 'indexeddb://gestualai-lgp'
@@ -21,7 +21,9 @@ export async function trainModel({ xs, ys }, { epochs = 50, onEpoch } = {}) {
   if (!xs.length) throw new Error('Sem amostras para treinar.')
 
   const model = tf.sequential()
-  model.add(tf.layers.dense({ inputShape: [FEATURE_LENGTH], units: 128, activation: 'relu' }))
+  model.add(
+    tf.layers.dense({ inputShape: [TEMPORAL_FEATURE_LENGTH], units: 128, activation: 'relu' }),
+  )
   model.add(tf.layers.dropout({ rate: 0.2 }))
   model.add(tf.layers.dense({ units: 64, activation: 'relu' }))
   model.add(tf.layers.dense({ units: NUM_CLASSES, activation: 'softmax' }))
@@ -31,12 +33,20 @@ export async function trainModel({ xs, ys }, { epochs = 50, onEpoch } = {}) {
     metrics: ['accuracy'],
   })
 
-  const xt = tf.tensor2d(xs, [xs.length, FEATURE_LENGTH])
+  // Baralha xs/ys em conjunto ANTES do fit: os dados vêm ordenados por classe
+  // e o validationSplit do TF.js retira a última fração sem baralhar, o que
+  // deixaria a validação só com as últimas classes.
+  const order = xs.map((_, i) => i)
+  tf.util.shuffle(order)
+  const shuffledXs = order.map((i) => xs[i])
+  const shuffledYs = order.map((i) => ys[i])
+
+  const xt = tf.tensor2d(shuffledXs, [shuffledXs.length, TEMPORAL_FEATURE_LENGTH])
   // Os rótulos têm de ser float32: a métrica de accuracy do TF.js aplica floor()
   // e rejeita tensores int32 com sparseCategoricalCrossentropy.
-  const yt = tf.tensor1d(ys, 'float32')
+  const yt = tf.tensor1d(shuffledYs, 'float32')
   // Só usa validação se houver amostras suficientes para um split com sentido.
-  const validationSplit = xs.length >= 40 ? 0.2 : 0
+  const validationSplit = shuffledXs.length >= 40 ? 0.2 : 0
 
   try {
     const h = await model.fit(xt, yt, {

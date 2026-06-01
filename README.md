@@ -76,9 +76,11 @@ exportado como ficheiros (`model.json` + pesos) para colocar em
 `public/models/lgp-gestures/README.md` para o contrato (entrada `[1,63]`,
 saída `[1,20]`).
 
-> **Nota:** este classificador usa uma única pose (uma mão, um frame). Sinais
-> que dependem de **movimento**, **duas mãos** ou **expressão facial** precisam
-> de um modelo temporal — extensão prevista para iterações seguintes.
+> **Nota:** o classificador usa um descritor **espácio-temporal** (janela de
+> ~16 frames: pose média + variação + deslocamento), por isso capta gestos com
+> **movimento**, não apenas poses estáticas. Continua limitado a **uma mão**;
+> sinais com duas mãos ou que dependam de **expressão facial** requerem
+> extensão futura.
 
 ## Scripts
 

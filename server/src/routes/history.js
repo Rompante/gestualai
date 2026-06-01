@@ -50,12 +50,21 @@ router.post('/', async (req, res, next) => {
 /** Remove uma entrada do próprio utilizador. */
 router.delete('/:id', async (req, res, next) => {
   try {
-    const { error } = await supabaseAdmin
+    // O id é um bigint — valida antes de consultar (evita erro de cast no Postgres).
+    const id = Number(req.params.id)
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'id inválido.' })
+    }
+    const { data, error } = await supabaseAdmin
       .from('translation_history')
       .delete()
-      .eq('id', req.params.id)
+      .eq('id', id)
       .eq('user_id', req.user.id)
+      .select('id')
     if (error) throw error
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: 'Entrada não encontrada.' })
+    }
     res.status(204).end()
   } catch (err) {
     next(err)
