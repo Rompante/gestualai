@@ -96,3 +96,7 @@ create policy "utilizadores inserem o próprio histórico"
 - **Latência** de inferência mede-se por frame em `useGestureRecognition` (a
   exportar para telemetria local quando necessário).
 - **Precisão** do modelo é avaliada offline durante o treino (Fase 2).
+
+
+## correr programa
+npm run dev -- --port 5176
