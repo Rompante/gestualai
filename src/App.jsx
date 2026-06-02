@@ -2,6 +2,8 @@ import { useCallback, useState } from 'react'
 import CameraView from './components/CameraView.jsx'
 import TranslationPanel from './components/TranslationPanel.jsx'
 import ControlBar from './components/ControlBar.jsx'
+import VocabularyPanel from './components/VocabularyPanel.jsx'
+import SentenceBuilder from './components/SentenceBuilder.jsx'
 import { useGestureRecognition } from './hooks/useGestureRecognition.js'
 import { speak } from './speech/speechSynthesis.js'
 import { saveTranslation } from './services/historyService.js'
@@ -9,6 +11,7 @@ import { saveTranslation } from './services/historyService.js'
 export default function App() {
   const [history, setHistory] = useState([])
   const [speechOn, setSpeechOn] = useState(true)
+  const [recognitionMode, setRecognitionMode] = useState('gestures')
 
   const handleConfirm = useCallback(
     ({ gesture, confidence, source, expression }) => {
@@ -39,7 +42,12 @@ export default function App() {
   )
 
   const { videoRef, canvasRef, status, error, usingModel, live, start, stop } =
-    useGestureRecognition({ confirmFrames: 8, minConfidence: 0.5, onConfirm: handleConfirm })
+    useGestureRecognition({
+      confirmFrames: 8,
+      minConfidence: 0.5,
+      onConfirm: handleConfirm,
+      mode: recognitionMode,
+    })
 
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-4 py-6">
@@ -67,16 +75,22 @@ export default function App() {
             status={status}
             live={live}
             usingModel={usingModel}
+            mode={recognitionMode}
+            onModeChange={setRecognitionMode}
             onStart={start}
             onStop={stop}
           />
         </div>
-        <TranslationPanel
-          live={live}
-          history={history}
-          speechOn={speechOn}
-          onToggleSpeech={() => setSpeechOn((v) => !v)}
-        />
+        <div className="flex flex-col gap-4">
+          <TranslationPanel
+            live={live}
+            history={history}
+            speechOn={speechOn}
+            onToggleSpeech={() => setSpeechOn((v) => !v)}
+          />
+          <SentenceBuilder mode={recognitionMode} />
+          <VocabularyPanel mode={recognitionMode} />
+        </div>
       </div>
 
       <footer className="border-t border-white/10 pt-4 text-xs text-slate-500">

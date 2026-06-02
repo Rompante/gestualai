@@ -4,6 +4,13 @@ Reconhecimento e tradução de um vocabulário base da **Língua Gestual Portugu
 (LGP)** — totalmente no browser (Edge AI), com **privacidade total**: nenhum
 vídeo sai do dispositivo.
 
+**Funcionalidades:**
+- Reconhecimento de **50+ gestos LGP** + expressões faciais
+- Modo **alfabeto** (A-Z) para soletrar palavras
+- **Construtor de frases**: clique em palavras/letras e ouve em voz alta
+- Histórico de traduções confirmadas
+- 100% local — nenhum dado sai do dispositivo
+
 > ⚠️ Ferramenta de apoio à comunicação **informal**. Não substitui intérpretes
 > de LGP em contextos formais ou críticos.
 
@@ -25,7 +32,21 @@ npm run dev            # abre em http://localhost:5173
 ```
 
 Clique em **Iniciar câmara** e autorize o acesso à webcam. A app desenha os
-marcos das mãos e do rosto e tenta traduzir o gesto.
+marcos das mãos e do rosto e tenta traduzir o gesto. Use o **construtor de
+frases** (painel lateral) para clicar em palavras e letras, ou **mude para modo
+alfabeto** para soletrar.
+
+### Treinar com seus dados LGP
+
+Tem vídeos anotados de LGP? Siga o **[Guia de Treino](TRAINING.md)**:
+
+1. Prepare seus vídeos por gesto/letra
+2. Treine no [Teachable Machine](https://teachablemachine.withgoogle.com/) ou [MediaPipe Studio](https://mediapipe-studio.webapps.google.com)
+3. Exporte para TensorFlow.js
+4. Copie os ficheiros para `public/models/lgp-gestures/` ou `public/models/sign-alphabet/`
+5. A app reconhecerá seus dados de treino automaticamente
+
+Ver [TRAINING.md](TRAINING.md) para instruções detalhadas.
 
 ### Sem modelo treinado?
 
@@ -70,7 +91,7 @@ são enviadas** para servidores. A persistência (opcional) guarda apenas o
 
 ## Roadmap
 
-- **Fase 0** — Vocabulário de 20 gestos definido (`src/ml/labels.js`).
-- **Fase 1** — ✅ Fundação e captura (React+Vite, câmara, MediaPipe).
-- **Fase 2** — Modelo LGP treinado, expressões gramaticais, voz.
-- **Fase 3** — Persistência (Supabase) e refinamento da interface.
+- **Fase 0** — ✅ Vocabulário expandido (50+ gestos) e suporte a alfabeto A-Z.
+- **Fase 1** — ✅ Fundação e captura (React+Vite, câmara, MediaPipe, construtor de frases).
+- **Fase 2** — Modelo LGP treinado com dados reais, expressões gramaticais avançadas.
+- **Fase 3** — Persistência (Supabase), refinamento da interface, análise de histórico.

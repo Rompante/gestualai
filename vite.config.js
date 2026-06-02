@@ -1,9 +1,21 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+function removeMediapipeSourceMap() {
+  return {
+    name: 'remove-mediapipe-source-map',
+    transform(code, id) {
+      if (id.includes('@mediapipe/tasks-vision') && id.endsWith('vision_bundle.mjs')) {
+        return code.replace(/\/\/\# sourceMappingURL=.*\n?$/, '')
+      }
+      return null
+    },
+  }
+}
+
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), removeMediapipeSourceMap()],
   server: {
     host: true,
     port: 5173,

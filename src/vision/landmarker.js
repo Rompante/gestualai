@@ -13,6 +13,7 @@ import {
   FilesetResolver,
   HandLandmarker,
   FaceLandmarker,
+  GestureRecognizer,
 } from '@mediapipe/tasks-vision'
 
 const WASM_PATH =
@@ -23,6 +24,9 @@ const HAND_MODEL =
 
 const FACE_MODEL =
   'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'
+
+const GESTURE_RECOGNIZER_MODEL =
+  'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task'
 
 let visionFileset = null
 
@@ -55,5 +59,20 @@ export async function createFaceLandmarker() {
     numFaces: 1,
     outputFaceBlendshapes: true,
     outputFacialTransformationMatrixes: false,
+  })
+}
+
+export async function createGestureRecognizer() {
+  const fileset = await getFileset()
+  return GestureRecognizer.createFromOptions(fileset, {
+    baseOptions: { modelAssetPath: GESTURE_RECOGNIZER_MODEL, delegate: 'GPU' },
+    runningMode: 'VIDEO',
+    numHands: 2,
+    minHandDetectionConfidence: 0.5,
+    minHandPresenceConfidence: 0.5,
+    minTrackingConfidence: 0.5,
+    cannedGesturesClassifierOptions: {
+      scoreThreshold: 0.5,
+    },
   })
 }

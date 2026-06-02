@@ -1,8 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { createHandLandmarker, createFaceLandmarker } from '../vision/landmarker.js'
+import { createHandLandmarker, createFaceLandmarker, createGestureRecognizer } from '../vision/landmarker.js'
 import { clearCanvas, drawHands, drawFaces } from '../vision/drawing.js'
 import { loadGestureModel, classify } from '../ml/gestureClassifier.js'
+import { loadAlphabetModel, classifyAlphabet } from '../ml/alphabetClassifier.js'
+import { gestureById } from '../ml/labels.js'
 import { interpretExpression } from '../vision/faceExpressions.js'
+
+const CANONICAL_MP_GESTURES = {
+  Open_Palm: 'ola',
+  Closed_Fist: 'nao',
+  Pointing_Up: 'esperar',
+  Thumb_Up: 'bem',
+  Thumb_Down: 'mal',
+  Victory: 'talvez',
+  ILoveYou: 'ajuda',
+}
+
+function mapMediaPipeGesture(categoryName, score) {
+  const id = CANONICAL_MP_GESTURES[categoryName]
+  if (!id) return null
+  return { id, confidence: score, source: 'mediapipe' }
+}
+
+function getGestureFromRecognizerResult(result) {
+  const handGestures = result?.gestures?.[0]
+  if (!handGestures?.length) return null
+  let best = handGestures[0]
+  for (const gesture of handGestures) {
+    if (gesture.score > best.score) best = gesture
+  }
+  return mapMediaPipeGesture(best.categoryName, best.score)
+}
 
 /**
  * Hook central de reconhecimento. Liga vídeo → MediaPipe → classificador →
@@ -16,12 +44,18 @@ import { interpretExpression } from '../vision/faceExpressions.js'
  *           onConfirm?: (g) => void }} [options]
  */
 export function useGestureRecognition(options = {}) {
-  const { confirmFrames = 8, minConfidence = 0.5, onConfirm } = options
+  const {
+    confirmFrames = 8,
+    minConfidence = 0.5,
+    onConfirm,
+    mode = 'gestures',
+  } = options
 
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const handLandmarkerRef = useRef(null)
   const faceLandmarkerRef = useRef(null)
+  const gestureRecognizerRef = useRef(null)
   const rafRef = useRef(0)
   const lastVideoTimeRef = useRef(-1)
 
@@ -71,6 +105,8 @@ export function useGestureRecognition(options = {}) {
       lastVideoTimeRef.current = video.currentTime
 
       const handResult = hand.detectForVideo(video, now)
+      const recognizer = gestureRecognizerRef.current
+      const recognizerResult = recognizer ? recognizer.recognizeForVideo(video, now) : null
       const face = faceLandmarkerRef.current
       const faceResult = face ? face.detectForVideo(video, now) : null
 
@@ -78,15 +114,29 @@ export function useGestureRecognition(options = {}) {
       if (faceResult?.faceLandmarks?.length) drawFaces(ctx, faceResult.faceLandmarks)
       if (handResult?.landmarks?.length) drawHands(ctx, handResult.landmarks)
 
-      // Classificação a partir da primeira mão detetada.
+      // Tenta detecção de gestos ou de letras, consoante o modo.
       let gesture = null
       let confidence = 0
       let source = 'heuristic'
-      if (handResult?.landmarks?.length) {
-        const out = classify(handResult.landmarks[0])
-        gesture = out.gesture
-        confidence = out.confidence
-        source = out.source
+      if (mode === 'alphabet') {
+        if (handResult?.landmarks?.length) {
+          const out = classifyAlphabet(handResult.landmarks[0])
+          gesture = out.gesture
+          confidence = out.confidence
+          source = out.source
+        }
+      } else {
+        const mpGesture = getGestureFromRecognizerResult(recognizerResult)
+        if (mpGesture) {
+          gesture = gestureById(mpGesture.id)
+          confidence = mpGesture.confidence
+          source = 'mediapipe'
+        } else if (handResult?.landmarks?.length) {
+          const out = classify(handResult.landmarks[0])
+          gesture = out.gesture
+          confidence = out.confidence
+          source = out.source
+        }
       }
 
       // Expressão facial.
@@ -137,21 +187,27 @@ export function useGestureRecognition(options = {}) {
 
     rafRef.current = requestAnimationFrame(tick)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [confirmFrames, minConfidence])
+  }, [confirmFrames, minConfidence, mode])
 
   const start = useCallback(async () => {
     if (status === 'loading' || status === 'running') return
     setStatus('loading')
     setError(null)
     try {
-      const [hand, face] = await Promise.all([
+      const [hand, face, recognizer] = await Promise.all([
         createHandLandmarker(),
         createFaceLandmarker(),
+        createGestureRecognizer().catch((err) => {
+          console.warn('[GestualAI] GestureRecognizer fallback indisponível:', err)
+          return null
+        }),
       ])
       handLandmarkerRef.current = hand
       faceLandmarkerRef.current = face
-      const model = await loadGestureModel()
-      setUsingModel(Boolean(model))
+      gestureRecognizerRef.current = recognizer
+      const gestureModel = await loadGestureModel()
+      const alphabetModel = await loadAlphabetModel()
+      setUsingModel(Boolean(mode === 'alphabet' ? alphabetModel : gestureModel))
       setStatus('running')
       rafRef.current = requestAnimationFrame(tick)
     } catch (err) {
@@ -159,10 +215,16 @@ export function useGestureRecognition(options = {}) {
       setError(err.message || 'Falha ao inicializar os modelos de visão.')
       setStatus('error')
     }
-  }, [status, tick])
+  }, [tick, mode])
 
   const stop = useCallback(() => {
     cancelAnimationFrame(rafRef.current)
+    handLandmarkerRef.current?.close?.()
+    faceLandmarkerRef.current?.close?.()
+    gestureRecognizerRef.current?.close?.()
+    handLandmarkerRef.current = null
+    faceLandmarkerRef.current = null
+    gestureRecognizerRef.current = null
     setStatus('idle')
   }, [])
 
@@ -171,6 +233,7 @@ export function useGestureRecognition(options = {}) {
       cancelAnimationFrame(rafRef.current)
       handLandmarkerRef.current?.close?.()
       faceLandmarkerRef.current?.close?.()
+      gestureRecognizerRef.current?.close?.()
     }
   }, [])
 
