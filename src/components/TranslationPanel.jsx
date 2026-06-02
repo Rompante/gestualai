@@ -12,7 +12,6 @@ export default function TranslationPanel({ live, history, speechOn, onToggleSpee
   return (
     <aside className="flex h-full flex-col gap-4">
       {/* Gesto ao vivo */}
-      {showGestureRecognition && (
       <section className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
           Gesto detetado
@@ -40,7 +39,6 @@ export default function TranslationPanel({ live, history, speechOn, onToggleSpee
           </div>
         )}
       </section>
-      )}
 
       {/* Expressão facial */}
       <section className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">

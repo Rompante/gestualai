@@ -1,12 +1,30 @@
+import fs from 'fs'
+import { dirname } from 'path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 function removeMediapipeSourceMap() {
   return {
     name: 'remove-mediapipe-source-map',
+    enforce: 'pre',
     transform(code, id) {
-      if (id.includes('@mediapipe/tasks-vision') && id.endsWith('vision_bundle.mjs')) {
+      if (id.includes('@mediapipe/tasks-vision') && id.includes('vision_bundle.mjs')) {
         return code.replace(/\/\/\# sourceMappingURL=.*\n?$/, '')
+      }
+      return null
+    },
+    resolveId(source, importer) {
+      if (source.endsWith('vision_bundle_mjs.js.map')) {
+        return source
+      }
+      return null
+    },
+    load(id) {
+      if (id.endsWith('vision_bundle_mjs.js.map')) {
+        const realMap = id.replace(/vision_bundle_mjs\.js\.map$/, 'vision_bundle.mjs.map')
+        if (fs.existsSync(realMap)) {
+          return fs.readFileSync(realMap, 'utf8')
+        }
       }
       return null
     },
@@ -17,8 +35,9 @@ function removeMediapipeSourceMap() {
 export default defineConfig({
   plugins: [react(), removeMediapipeSourceMap()],
   server: {
-    host: true,
-    port: 5173,
+    host: '0.0.0.0',
+    port: 5175,
+    strictPort: true,
   },
   optimizeDeps: {
     // tasks-vision ships a wasm loader that Vite should not try to pre-bundle aggressively
