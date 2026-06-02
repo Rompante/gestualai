@@ -135,6 +135,20 @@ câmara nunca são enviadas** para servidores. A API backend recebe apenas o
 **texto** das traduções e dados de perfil — nunca vídeo (o `express.json` está
 limitado a 256 kB propositadamente).
 
+## Resolução de problemas ("não funciona")
+
+| Sintoma | Causa / solução |
+| --- | --- |
+| A câmara não abre / ecrã preto | Precisa de **HTTPS** ou **`http://localhost`**. Por IP da rede (ex.: `192.168.x.x`) o navegador bloqueia a câmara. Use `localhost`. |
+| "Acesso à câmara negado" | Autorize a câmara nas permissões do navegador e recarregue. |
+| Não aparecem marcos / erro ao iniciar | Os modelos MediaPipe carregam de CDN (`cdn.jsdelivr.net`, `storage.googleapis.com`). Numa rede restrita podem ser bloqueados — a app mostra o erro. |
+| Só reconhece «Olá» e «Estou bem» | Está a usar a **heurística** (sem modelo treinado). Use o separador **Treinar** para criar um modelo (ver acima). |
+| Login/histórico não funcionam | É preciso a **API a correr** (`cd server && npm run dev`) e o Supabase configurado (`server/docs/SUPABASE_SETUP.md`). Sem isso, a tradução funciona na mesma; só a persistência fica inativa. |
+| GPU/WebGL indisponível | O MediaPipe recorre automaticamente ao **CPU** (mais lento, mas funciona). |
+
+> A tradução (câmara + reconhecimento) funciona **sem** a API. A API só é
+> necessária para contas e histórico.
+
 ## Roadmap
 
 - **Fase 0** — Vocabulário de 20 gestos definido (`src/ml/labels.js`).

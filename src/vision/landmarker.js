@@ -33,27 +33,45 @@ async function getFileset() {
   return visionFileset
 }
 
+/**
+ * Tenta criar com o delegate GPU; em caso de falha (drivers/WebGL indisponível,
+ * comum em portáteis e máquinas virtuais), recorre ao CPU. Sem este fallback,
+ * o reconhecimento simplesmente não arrancava em muitos dispositivos.
+ */
+async function createWithFallback(create) {
+  try {
+    return await create('GPU')
+  } catch (err) {
+    console.warn('[GestualAI] Delegate GPU indisponível, a usar CPU:', err?.message || err)
+    return create('CPU')
+  }
+}
+
 /** Cria um HandLandmarker em modo VIDEO (vídeo em tempo real). */
 export async function createHandLandmarker() {
   const fileset = await getFileset()
-  return HandLandmarker.createFromOptions(fileset, {
-    baseOptions: { modelAssetPath: HAND_MODEL, delegate: 'GPU' },
-    runningMode: 'VIDEO',
-    numHands: 2,
-    minHandDetectionConfidence: 0.5,
-    minHandPresenceConfidence: 0.5,
-    minTrackingConfidence: 0.5,
-  })
+  return createWithFallback((delegate) =>
+    HandLandmarker.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: HAND_MODEL, delegate },
+      runningMode: 'VIDEO',
+      numHands: 2,
+      minHandDetectionConfidence: 0.5,
+      minHandPresenceConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+    }),
+  )
 }
 
 /** Cria um FaceLandmarker com saída de blendshapes (expressões faciais). */
 export async function createFaceLandmarker() {
   const fileset = await getFileset()
-  return FaceLandmarker.createFromOptions(fileset, {
-    baseOptions: { modelAssetPath: FACE_MODEL, delegate: 'GPU' },
-    runningMode: 'VIDEO',
-    numFaces: 1,
-    outputFaceBlendshapes: true,
-    outputFacialTransformationMatrixes: false,
-  })
+  return createWithFallback((delegate) =>
+    FaceLandmarker.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: FACE_MODEL, delegate },
+      runningMode: 'VIDEO',
+      numFaces: 1,
+      outputFaceBlendshapes: true,
+      outputFacialTransformationMatrixes: false,
+    }),
+  )
 }

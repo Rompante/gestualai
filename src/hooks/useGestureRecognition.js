@@ -179,6 +179,12 @@ export function useGestureRecognition(options = {}) {
     setStatus('loading')
     setError(null)
     try {
+      // Fecha instâncias anteriores (ex.: parar→arrancar) para não acumular.
+      handLandmarkerRef.current?.close?.()
+      faceLandmarkerRef.current?.close?.()
+      handLandmarkerRef.current = null
+      faceLandmarkerRef.current = null
+
       const [hand, face] = await Promise.all([
         createHandLandmarker(),
         createFaceLandmarker(),

@@ -37,6 +37,7 @@ export default function App() {
   const [mode, setMode] = useState('translate') // 'translate' | 'train'
   const [history, setHistory] = useState([])
   const [speechOn, setSpeechOn] = useState(true)
+  const [cameraError, setCameraError] = useState(null)
   const { isAuthenticated } = useAuth()
 
   // Estado do modo de treino.
@@ -224,15 +225,16 @@ export default function App() {
         ))}
       </div>
 
-      {error && (
+      {(error || cameraError) && (
         <div className="rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200 ring-1 ring-red-500/30">
-          {error} Verifique as permissões da câmara e a ligação à Internet (modelos via CDN).
+          {cameraError || error}{' '}
+          {error && !cameraError && 'Verifique a ligação à Internet (modelos MediaPipe via CDN).'}
         </div>
       )}
 
       <div className="grid flex-1 grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="flex flex-col gap-4">
-          <CameraView videoRef={videoRef} canvasRef={canvasRef} />
+          <CameraView videoRef={videoRef} canvasRef={canvasRef} onCameraError={setCameraError} />
           <ControlBar
             status={status}
             live={live}

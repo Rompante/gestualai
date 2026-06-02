@@ -16,8 +16,8 @@ module.exports = {
   },
   overrides: [
     {
-      // API backend (Node) — sem React, com globais de Node.
-      files: ['server/**/*.js'],
+      // Código Node (API backend e testes) — sem React, com globais de Node.
+      files: ['server/**/*.js', 'test/**/*.js'],
       env: { node: true, browser: false },
       extends: ['eslint:recommended'],
       rules: {
