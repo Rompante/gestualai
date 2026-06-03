@@ -80,10 +80,10 @@ exportado como ficheiros (`model.json` + pesos) para colocar em
 saída `[1,20]`).
 
 > **Nota:** o classificador usa um descritor **espácio-temporal** (janela de
-> ~16 frames: pose média + variação + deslocamento), por isso capta gestos com
-> **movimento**, não apenas poses estáticas. Continua limitado a **uma mão**;
-> sinais com duas mãos ou que dependam de **expressão facial** requerem
-> extensão futura.
+> ~16 frames: pose média + variação + deslocamento) de **duas mãos**, por isso
+> capta gestos com **movimento** e a **duas mãos**, não apenas poses estáticas
+> de uma mão. Sinais que dependam de **expressão facial gramatical** ainda não
+> são integrados na classificação (são mostrados à parte).
 
 ## Scripts
 

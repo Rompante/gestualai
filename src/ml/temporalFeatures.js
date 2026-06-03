@@ -6,21 +6,23 @@
  * sequência pesado, resumimos uma janela dos últimos N frames (cada um com o
  * vetor de 63 marcos normalizados) num descritor de tamanho fixo:
  *
- *   • média        (63) — pose média na janela
- *   • desvio-padrão (63) — quantidade de movimento por eixo
- *   • deslocamento  (63) — movimento líquido (último − primeiro), capta direção
+ *   • média         — pose média na janela
+ *   • desvio-padrão — quantidade de movimento por eixo
+ *   • deslocamento  — movimento líquido (último − primeiro), capta direção
  *
- * Resultado: vetor de 189 valores, classificável pelo mesmo MLP. Mantém o
- * dataset pequeno (um vetor por amostra) e funciona tanto para gestos
- * estáticos (desvio/deslocamento ≈ 0) como dinâmicos.
+ * O frame de entrada tem 126 valores (duas mãos × 63), logo o descritor tem
+ * 378 valores, classificável pelo mesmo MLP. Mantém o dataset pequeno (um vetor
+ * por amostra) e funciona para gestos estáticos (desvio/deslocamento ≈ 0),
+ * dinâmicos e a duas mãos.
  */
-import { FEATURE_LENGTH as PER_FRAME } from './featureExtraction.js'
+import { FRAME_FEATURE_LENGTH } from './handFeatures.js'
 
 /** Número de frames considerados na janela (~0,5 s a 30 fps). */
 export const WINDOW = 16
 
 /** Dimensão do descritor espácio-temporal: média + desvio + deslocamento. */
-export const TEMPORAL_FEATURE_LENGTH = PER_FRAME * 3 // 189
+// Por frame: 126 valores (duas mãos × 63) → 126 × 3 = 378.
+export const TEMPORAL_FEATURE_LENGTH = FRAME_FEATURE_LENGTH * 3
 
 /**
  * @param {number[][]} buffer - até WINDOW vetores de PER_FRAME valores.

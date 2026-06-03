@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createHandLandmarker, createFaceLandmarker } from '../vision/landmarker.js'
 import { clearCanvas, drawHands, drawFaces } from '../vision/drawing.js'
 import { loadGestureModel, reloadGestureModel, classify } from '../ml/gestureClassifier.js'
-import { normalizeHandLandmarks } from '../ml/featureExtraction.js'
+import { buildFrameFeature } from '../ml/handFeatures.js'
 import { computeTemporalFeature, WINDOW } from '../ml/temporalFeatures.js'
 import { interpretExpression } from '../vision/faceExpressions.js'
 
@@ -99,13 +99,16 @@ export function useGestureRecognition(options = {}) {
       let confidence = 0
       let source = 'heuristic'
       if (handResult?.landmarks?.length) {
-        const landmarks = handResult.landmarks[0]
+        const landmarks = handResult.landmarks[0] // 1ª mão (usada pela heurística)
 
-        // Atualiza a janela deslizante com o vetor de marcos deste frame.
-        const f63 = normalizeHandLandmarks(landmarks)
+        // Vetor do frame com as DUAS mãos (handedness do MediaPipe).
+        const frameFeat = buildFrameFeature(
+          handResult.landmarks,
+          handResult.handednesses ?? handResult.handedness,
+        )
         const buffer = frameBufferRef.current
-        if (f63) {
-          buffer.push(f63)
+        if (frameFeat) {
+          buffer.push(frameFeat)
           if (buffer.length > WINDOW) buffer.shift()
         }
         // O descritor só é fiável com a janela cheia — é a distribuição em que

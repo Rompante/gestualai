@@ -7,6 +7,7 @@ import {
   TEMPORAL_FEATURE_LENGTH,
   WINDOW,
 } from '../src/ml/temporalFeatures.js'
+import { buildFrameFeature, FRAME_FEATURE_LENGTH, PER_HAND } from '../src/ml/handFeatures.js'
 import { interpretExpression } from '../src/vision/faceExpressions.js'
 import {
   GESTURE_LABELS,
@@ -57,38 +58,70 @@ test('distance calcula a norma euclidiana 3D', () => {
 })
 
 // ---------- temporalFeatures ----------
-test('computeTemporalFeature devolve 189 valores (3×63)', () => {
-  const buffer = Array.from({ length: 5 }, () => Array(63).fill(0.1))
+const FF = FRAME_FEATURE_LENGTH // 126 (duas mãos × 63)
+
+test('computeTemporalFeature devolve 378 valores (3×126)', () => {
+  const buffer = Array.from({ length: 5 }, () => Array(FF).fill(0.1))
   const t = computeTemporalFeature(buffer)
   assert.equal(t.length, TEMPORAL_FEATURE_LENGTH)
-  assert.equal(t.length, 189)
+  assert.equal(t.length, 378)
 })
 
 test('gesto estático → desvio e deslocamento ≈ 0', () => {
-  const buffer = Array.from({ length: WINDOW }, () => Array(63).fill(0.42))
+  const buffer = Array.from({ length: WINDOW }, () => Array(FF).fill(0.42))
   const t = computeTemporalFeature(buffer)
-  const std = t.slice(63, 126)
-  const delta = t.slice(126, 189)
+  const mean = t.slice(0, FF)
+  const std = t.slice(FF, 2 * FF)
+  const delta = t.slice(2 * FF, 3 * FF)
   assert.ok(std.every((v) => Math.abs(v) < 1e-9))
   assert.ok(delta.every((v) => Math.abs(v) < 1e-9))
-  // A média deve igualar o valor constante.
-  assert.ok(t.slice(0, 63).every((v) => Math.abs(v - 0.42) < 1e-9))
+  assert.ok(mean.every((v) => Math.abs(v - 0.42) < 1e-9))
 })
 
 test('movimento → deslocamento líquido capta a direção', () => {
   // dim 0 cresce de 0 a 1 ao longo da janela.
   const buffer = Array.from({ length: WINDOW }, (_, i) => {
-    const v = Array(63).fill(0)
+    const v = Array(FF).fill(0)
     v[0] = i / (WINDOW - 1)
     return v
   })
   const t = computeTemporalFeature(buffer)
-  assert.ok(t[126] > 0.99) // delta da dim 0 ≈ 1 (last - first)
-  assert.ok(t[63] > 0) // std da dim 0 > 0
+  assert.ok(t[2 * FF] > 0.99) // delta da dim 0 ≈ 1 (last - first)
+  assert.ok(t[FF] > 0) // std da dim 0 > 0
 })
 
 test('computeTemporalFeature devolve null para buffer vazio', () => {
   assert.equal(computeTemporalFeature([]), null)
+})
+
+// ---------- handFeatures (duas mãos) ----------
+const hand = (off = 0) =>
+  Array.from({ length: 21 }, (_, i) => ({ x: 0.5 + i * 0.01 + off, y: 0.5 + i * 0.005, z: i * 0.001 }))
+const HD = (label) => [{ categoryName: label, score: 1 }]
+
+test('buildFrameFeature: duas mãos → 126 valores, ambos os slots preenchidos', () => {
+  const f = buildFrameFeature([hand(0), hand(0.1)], [HD('Right'), HD('Left')])
+  assert.equal(f.length, FRAME_FEATURE_LENGTH)
+  assert.equal(f.length, 126)
+  // Slot esquerdo (índices 63..125) não está todo a zero.
+  assert.ok(f.slice(PER_HAND).some((v) => v !== 0))
+})
+
+test('buildFrameFeature: uma mão (direita) → slot esquerdo a zeros', () => {
+  const f = buildFrameFeature([hand(0)], [HD('Right')])
+  assert.ok(f.slice(0, PER_HAND).some((v) => v !== 0)) // direita preenchida
+  assert.ok(f.slice(PER_HAND).every((v) => v === 0)) // esquerda a zeros
+})
+
+test('buildFrameFeature: mão esquerda vai para o slot esquerdo', () => {
+  const f = buildFrameFeature([hand(0)], [HD('Left')])
+  assert.ok(f.slice(0, PER_HAND).every((v) => v === 0)) // direita a zeros
+  assert.ok(f.slice(PER_HAND).some((v) => v !== 0)) // esquerda preenchida
+})
+
+test('buildFrameFeature: sem mãos → null', () => {
+  assert.equal(buildFrameFeature([], []), null)
+  assert.equal(buildFrameFeature(null, null), null)
 })
 
 // ---------- faceExpressions ----------

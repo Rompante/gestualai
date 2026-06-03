@@ -16,9 +16,10 @@ alternativa, treine externamente respeitando o contrato abaixo.
 
 ## Contrato esperado
 
-- **Entrada:** tensor `[1, 189]` — descritor espácio-temporal de uma janela de
-  frames: média + desvio-padrão + deslocamento dos 63 marcos normalizados
-  (ver `src/ml/temporalFeatures.js`).
+- **Entrada:** tensor `[1, 378]` — descritor espácio-temporal de uma janela de
+  frames: média + desvio-padrão + deslocamento do vetor de frame de 126 valores
+  (duas mãos × 63 marcos normalizados — ver `src/ml/handFeatures.js` e
+  `src/ml/temporalFeatures.js`).
 - **Saída:** tensor `[1, 21]` — softmax sobre as 21 classes de treino, **pela
   ordem** de `TRAINING_LABELS` em `src/ml/labels.js`: os 20 gestos seguidos da
   classe **neutro** (índice 20 = "sem gesto", não traduzível).
