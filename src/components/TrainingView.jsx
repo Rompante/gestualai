@@ -138,7 +138,7 @@ export default function TrainingView({
         </div>
       </section>
 
-      {/* Treino */}
+      {/* Treino removido */}
       <section className="glass p-5">
         <button
           onClick={onTrain}
