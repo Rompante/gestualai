@@ -20,8 +20,8 @@ export const isDbConfigured = Boolean(supabaseAdmin)
 export const isAuthConfigured = Boolean(supabaseAuth)
 
 if (!isDbConfigured) {
-  console.warn(
-    '[GestualAI API] Supabase service-role não configurado — endpoints de perfil/histórico devolvem 503. ' +
-      'Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY em server/.env.',
+  console.info(
+    '[GestualAI API] Persistência LOCAL (SQLite + auth local). ' +
+      'Para usar Supabase, defina SUPABASE_URL + chaves em server/.env.',
   )
 }

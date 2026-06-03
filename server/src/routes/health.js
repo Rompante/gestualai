@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { isDbConfigured, isAuthConfigured } from '../supabase.js'
+import { persistenceMode } from '../store/index.js'
 
 const router = Router()
 
@@ -7,8 +7,8 @@ router.get('/', (req, res) => {
   res.json({
     status: 'ok',
     service: 'gestualai-api',
-    db: isDbConfigured,
-    auth: isAuthConfigured,
+    persistence: true, // sempre disponível (local por omissão)
+    mode: persistenceMode, // 'local' | 'supabase'
     time: new Date().toISOString(),
   })
 })

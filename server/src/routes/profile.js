@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.js'
-import { supabaseAdmin } from '../supabase.js'
+import { store } from '../store/index.js'
 
 const router = Router()
 router.use(requireAuth)
@@ -8,13 +8,7 @@ router.use(requireAuth)
 /** Perfil do utilizador autenticado. */
 router.get('/', async (req, res, next) => {
   try {
-    const { data, error } = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .eq('id', req.user.id)
-      .maybeSingle()
-    if (error) throw error
-    res.json({ profile: data ?? { id: req.user.id, display_name: null } })
+    res.json({ profile: await store.getProfile(req.user.id) })
   } catch (err) {
     next(err)
   }
@@ -23,14 +17,7 @@ router.get('/', async (req, res, next) => {
 /** Cria/atualiza o perfil. */
 router.put('/', async (req, res, next) => {
   try {
-    const { displayName } = req.body || {}
-    const { data, error } = await supabaseAdmin
-      .from('profiles')
-      .upsert({ id: req.user.id, display_name: displayName ?? null })
-      .select()
-      .single()
-    if (error) throw error
-    res.json({ profile: data })
+    res.json({ profile: await store.updateProfile(req.user.id, req.body?.displayName) })
   } catch (err) {
     next(err)
   }

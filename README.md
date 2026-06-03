@@ -38,17 +38,17 @@ npm run dev            # abre em http://localhost:5173
 ```bash
 cd server
 npm install
-cp .env.example .env   # preencher SUPABASE_URL + chaves para ativar auth/histórico
 npm run dev            # API em http://localhost:8787
 ```
 
-Sem credenciais Supabase, a API arranca na mesma e serve `vocabulary`,
-`model/manifest` e `health`; os endpoints de auth/histórico respondem 503.
-
-Para ativar a persistência siga o guia
-[`server/docs/SUPABASE_SETUP.md`](server/docs/SUPABASE_SETUP.md) (criar projeto,
-correr `server/db/schema.sql`, preencher `server/.env`) e valide com
+A persistência (contas + histórico) funciona **logo, sem configuração**: usa
+**SQLite local** (`server/data/`) com autenticação local (JWT). Valide com
 `cd server && npm run smoke`.
+
+Para usar **Supabase** em vez do modo local (multi-dispositivo/produção),
+preencha `server/.env` segundo
+[`server/docs/SUPABASE_SETUP.md`](server/docs/SUPABASE_SETUP.md) — a API deteta
+e passa a usar o Supabase automaticamente.
 
 Clique em **Iniciar câmara** e autorize o acesso à webcam. A app desenha os
 marcos das mãos e do rosto e tenta traduzir o gesto.

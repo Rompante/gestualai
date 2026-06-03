@@ -53,7 +53,7 @@ async function main() {
   try {
     health = await req('/api/health')
     if (health.status === 200 && health.data?.status === 'ok') {
-      ok('GET /api/health', `db=${health.data.db} auth=${health.data.auth}`)
+      ok('GET /api/health', `persistência=${health.data.mode}`)
     } else {
       fail('GET /api/health', `status ${health.status}`)
     }
@@ -70,12 +70,10 @@ async function main() {
     fail('GET /api/vocabulary', `status ${vocab.status}, count ${vocab.data?.count}`)
   }
 
-  // Se a BD/auth não estiverem configuradas, não vale a pena continuar.
-  if (!health.data.db || !health.data.auth) {
-    console.log(
-      `\n${c.yellow('!')} Supabase não configurado — passos de auth/perfil/histórico ignorados.`,
-    )
-    console.log(`  ${c.dim('Preencha server/.env e reinicie a API (ver docs/SUPABASE_SETUP.md).')}`)
+  console.log(`  ${c.dim(`persistência: ${health.data.mode}`)}`)
+  // A persistência está sempre disponível (local por omissão).
+  if (!health.data.persistence) {
+    console.log(`\n${c.yellow('!')} Persistência indisponível — passos de auth/histórico ignorados.`)
     return finish()
   }
 
