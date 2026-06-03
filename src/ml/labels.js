@@ -48,14 +48,35 @@ export const CATEGORY_LABELS = {
   pedidos: 'Pedidos',
   estados: 'Estados',
   emergencia: 'Emergência',
+  neutro: 'Neutro',
 }
 
-/** Número total de classes — usado para validar a forma da saída do modelo. */
+/** Número de gestos do vocabulário (não inclui a classe neutra). */
 export const NUM_CLASSES = GESTURE_LABELS.length
 
-/** Procura um gesto pelo seu índice de classe. */
+/**
+ * Classe "Neutro / sem gesto". É a última saída do modelo: permite-lhe aprender
+ * a NÃO disparar quando não há gesto, eliminando deteções falsas constantes.
+ * Não faz parte do vocabulário traduzível.
+ */
+export const NEUTRAL_ID = 'neutral'
+export const NEUTRAL_LABEL = { id: NEUTRAL_ID, label: 'Neutro / sem gesto', category: 'neutro' }
+
+/** Classes de TREINO = 20 gestos + neutro. A ordem define os índices do modelo. */
+export const TRAINING_LABELS = [...GESTURE_LABELS, NEUTRAL_LABEL]
+
+/** Índice da classe neutra (última) e nº total de saídas do modelo. */
+export const NEUTRAL_INDEX = GESTURE_LABELS.length // 20
+export const OUTPUT_CLASSES = TRAINING_LABELS.length // 21
+
+/** Procura um gesto do vocabulário pelo seu índice de classe (0..19). */
 export function gestureByIndex(index) {
   return GESTURE_LABELS[index] ?? null
+}
+
+/** Procura uma classe de treino (inclui neutro) pelo índice (0..20). */
+export function trainingLabelByIndex(index) {
+  return TRAINING_LABELS[index] ?? null
 }
 
 /** Procura um gesto pelo seu id estável. */

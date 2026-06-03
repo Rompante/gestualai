@@ -6,7 +6,7 @@
  * modelo em IndexedDB, de onde o classificador o carrega automaticamente.
  */
 import * as tf from '@tensorflow/tfjs'
-import { NUM_CLASSES } from './labels.js'
+import { OUTPUT_CLASSES } from './labels.js'
 import { TEMPORAL_FEATURE_LENGTH } from './temporalFeatures.js'
 
 /** Localização do modelo treinado no browser. */
@@ -26,20 +26,30 @@ export async function trainModel({ xs, ys }, { epochs = 50, onEpoch } = {}) {
   )
   model.add(tf.layers.dropout({ rate: 0.2 }))
   model.add(tf.layers.dense({ units: 64, activation: 'relu' }))
-  model.add(tf.layers.dense({ units: NUM_CLASSES, activation: 'softmax' }))
+  model.add(tf.layers.dense({ units: OUTPUT_CLASSES, activation: 'softmax' }))
   model.compile({
     optimizer: tf.train.adam(0.001),
     loss: 'sparseCategoricalCrossentropy',
     metrics: ['accuracy'],
   })
 
+  // Aumento de dados: cópias com ruído gaussiano leve melhoram a generalização
+  // com poucos exemplos e tornam a deteção mais robusta a pequenas variações.
+  const NOISE = 0.01
+  const augX = xs.slice()
+  const augY = ys.slice()
+  for (let i = 0; i < xs.length; i++) {
+    augX.push(xs[i].map((v) => v + (Math.random() * 2 - 1) * NOISE))
+    augY.push(ys[i])
+  }
+
   // Baralha xs/ys em conjunto ANTES do fit: os dados vêm ordenados por classe
   // e o validationSplit do TF.js retira a última fração sem baralhar, o que
   // deixaria a validação só com as últimas classes.
-  const order = xs.map((_, i) => i)
+  const order = augX.map((_, i) => i)
   tf.util.shuffle(order)
-  const shuffledXs = order.map((i) => xs[i])
-  const shuffledYs = order.map((i) => ys[i])
+  const shuffledXs = order.map((i) => augX[i])
+  const shuffledYs = order.map((i) => augY[i])
 
   const xt = tf.tensor2d(shuffledXs, [shuffledXs.length, TEMPORAL_FEATURE_LENGTH])
   // Os rótulos têm de ser float32: a métrica de accuracy do TF.js aplica floor()

@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { GESTURE_LABELS, CATEGORY_LABELS } from '../ml/labels.js'
+import { TRAINING_LABELS, CATEGORY_LABELS } from '../ml/labels.js'
 
 /**
  * Modo de treino: grava amostras de cada gesto, mostra o dataset e treina o
@@ -41,12 +41,16 @@ export default function TrainingView({
           onChange={(e) => onSelectGesture(e.target.value)}
           className="mb-3 w-full rounded-lg bg-black/30 px-3 py-2 text-sm text-white outline-none ring-1 ring-white/10 focus:ring-brand-500"
         >
-          {GESTURE_LABELS.map((g) => (
+          {TRAINING_LABELS.map((g) => (
             <option key={g.id} value={g.id}>
               {g.label} ({CATEGORY_LABELS[g.category]}) — {counts[g.id] || 0}
             </option>
           ))}
         </select>
+        <p className="mb-3 mt-1 text-xs text-slate-500">
+          Grave também a classe <strong>«Neutro / sem gesto»</strong> (mão parada
+          ou movimentos aleatórios) para a app saber quando <em>não</em> há gesto.
+        </p>
 
         <button
           onClick={onToggleRecording}
@@ -73,7 +77,7 @@ export default function TrainingView({
           <span className="text-xs text-slate-400">{totalSamples} amostras</span>
         </div>
         <ul className="flex-1 space-y-1 overflow-y-auto pr-1 text-sm">
-          {GESTURE_LABELS.filter((g) => counts[g.id] > 0).map((g) => (
+          {TRAINING_LABELS.filter((g) => counts[g.id] > 0).map((g) => (
             <li key={g.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-1.5">
               <span className="text-white">{g.label}</span>
               <span className="text-xs text-slate-400">{counts[g.id]}</span>

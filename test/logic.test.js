@@ -8,7 +8,16 @@ import {
   WINDOW,
 } from '../src/ml/temporalFeatures.js'
 import { interpretExpression } from '../src/vision/faceExpressions.js'
-import { GESTURE_LABELS, NUM_CLASSES, gestureByIndex, gestureById } from '../src/ml/labels.js'
+import {
+  GESTURE_LABELS,
+  TRAINING_LABELS,
+  NUM_CLASSES,
+  OUTPUT_CLASSES,
+  NEUTRAL_INDEX,
+  gestureByIndex,
+  gestureById,
+  trainingLabelByIndex,
+} from '../src/ml/labels.js'
 
 // ---------- featureExtraction ----------
 function fakeHand(offset = 0) {
@@ -121,6 +130,15 @@ test('todos os gestos têm id, label e category únicos', () => {
   }
 })
 
+test('classe neutra: 21 saídas, índice 20, fora do vocabulário', () => {
+  assert.equal(OUTPUT_CLASSES, 21)
+  assert.equal(NEUTRAL_INDEX, 20)
+  assert.equal(TRAINING_LABELS.length, 21)
+  assert.equal(trainingLabelByIndex(NEUTRAL_INDEX).id, 'neutral')
+  // O índice neutro não corresponde a um gesto traduzível.
+  assert.equal(gestureByIndex(NEUTRAL_INDEX), null)
+})
+
 // ---------- datasetStore (requer localStorage) ----------
 test('datasetStore: captura, contagens, treino e limpeza', async () => {
   global.localStorage = {
@@ -141,21 +159,23 @@ test('datasetStore: captura, contagens, treino e limpeza', async () => {
   dataset.addSample('ola', vec)
   dataset.addSample('ola', vec)
   dataset.addSample('agua', vec)
+  dataset.addSample('neutral', vec) // classe neutra
 
   assert.equal(dataset.counts().ola, 2)
   assert.equal(dataset.counts().agua, 1)
-  assert.equal(dataset.totalSamples(), 3)
-  assert.equal(dataset.labelsWithData().length, 2)
+  assert.equal(dataset.counts().neutral, 1)
+  assert.equal(dataset.totalSamples(), 4)
+  assert.equal(dataset.labelsWithData().length, 3)
 
   // Amostra com comprimento errado é ignorada.
   dataset.addSample('ola', [1, 2, 3])
   assert.equal(dataset.counts().ola, 2)
 
   const { xs, ys } = dataset.getTrainingData()
-  assert.equal(xs.length, 3)
-  assert.equal(ys.length, 3)
-  // ys são índices de classe alinhados com GESTURE_LABELS (ola=0, agua=11).
-  assert.deepEqual([...ys].sort((a, b) => a - b), [0, 0, 11])
+  assert.equal(xs.length, 4)
+  assert.equal(ys.length, 4)
+  // ys alinhados com TRAINING_LABELS (ola=0, agua=11, neutral=20).
+  assert.deepEqual([...ys].sort((a, b) => a - b), [0, 0, 11, 20])
 
   dataset.commit()
   assert.ok(global.localStorage.getItem('gestualai.dataset.v2'))

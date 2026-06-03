@@ -65,10 +65,13 @@ browser, sem ferramentas externas):
 1. Inicie a câmara e escolha um gesto no seletor.
 2. Faça o gesto e clique **Gravar amostras** (recomendado: 50–100 por gesto,
    com variações de ângulo/posição). Repita para cada gesto.
-3. Clique **Treinar com o dataset** — treina um modelo TensorFlow.js e guarda-o
-   no browser (IndexedDB).
-4. Volte a **Traduzir**: o badge passa a **«Modelo LGP»** e a classificação usa
-   o seu modelo.
+3. **Importante:** grave também a classe **«Neutro / sem gesto»** (mão parada e
+   movimentos aleatórios que *não* são gestos). Sem isto, o modelo "adivinha"
+   sempre um gesto e gera deteções falsas constantes.
+4. Clique **Treinar com o dataset** — treina um modelo TensorFlow.js (com
+   aumento de dados) e guarda-o no browser (IndexedDB).
+5. Volte a **Traduzir**: o badge passa a **«Modelo LGP»** e a classificação usa
+   o seu modelo; quando não faz gestos, fica em «Neutro» (sem disparar nada).
 
 O dataset pode ser exportado/importado (JSON) e o modelo treinado pode ser
 exportado como ficheiros (`model.json` + pesos) para colocar em

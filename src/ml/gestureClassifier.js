@@ -16,7 +16,7 @@
  * A interface pública é idêntica nos dois casos: `classify(landmarks)`.
  */
 import * as tf from '@tensorflow/tfjs'
-import { GESTURE_LABELS, NUM_CLASSES, gestureByIndex } from './labels.js'
+import { GESTURE_LABELS, OUTPUT_CLASSES, NEUTRAL_INDEX, gestureByIndex } from './labels.js'
 import { distance } from './featureExtraction.js'
 import { TEMPORAL_FEATURE_LENGTH } from './temporalFeatures.js'
 import { TRAINED_MODEL_STORE } from './trainModel.js'
@@ -30,10 +30,10 @@ let modelLoadAttempted = false
 function validate(loaded) {
   const outputUnits = loaded.outputs[0].shape.at(-1)
   const inputUnits = loaded.inputs[0].shape.at(-1)
-  if (outputUnits !== NUM_CLASSES || inputUnits !== TEMPORAL_FEATURE_LENGTH) {
+  if (outputUnits !== OUTPUT_CLASSES || inputUnits !== TEMPORAL_FEATURE_LENGTH) {
     console.warn(
       `[GestualAI] Modelo incompatível (entrada ${inputUnits}/${TEMPORAL_FEATURE_LENGTH}, ` +
-        `saída ${outputUnits}/${NUM_CLASSES}). A ignorar.`,
+        `saída ${outputUnits}/${OUTPUT_CLASSES}). A ignorar.`,
     )
     loaded.dispose?.()
     return null
@@ -93,9 +93,11 @@ export function isModelLoaded() {
  * @returns {{ gesture: object|null, confidence: number, source: 'model'|'heuristic' }}
  */
 export function classify(landmarks, temporalFeature) {
-  if (model && temporalFeature) {
-    const result = classifyWithModel(temporalFeature)
-    if (result) return result
+  // Com modelo treinado, usa-se exclusivamente o modelo (e só com a janela
+  // temporal completa, fornecida pelo chamador) — nunca a heurística.
+  if (model) {
+    if (!temporalFeature) return { gesture: null, confidence: 0, source: 'model' }
+    return classifyWithModel(temporalFeature) ?? { gesture: null, confidence: 0, source: 'model' }
   }
   return { ...classifyHeuristic(landmarks), source: 'heuristic' }
 }
@@ -108,8 +110,9 @@ function classifyWithModel(features) {
     const probs = output.dataSync()
     let best = 0
     for (let i = 1; i < probs.length; i++) if (probs[i] > probs[best]) best = i
+    // A classe neutra significa "sem gesto" → não dispara tradução.
     return {
-      gesture: gestureByIndex(best),
+      gesture: best === NEUTRAL_INDEX ? null : gestureByIndex(best),
       confidence: probs[best],
       source: 'model',
     }

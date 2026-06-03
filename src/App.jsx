@@ -148,7 +148,8 @@ export default function App() {
     if (xs.length < 20 || dataset.labelsWithData().length < 2) {
       setTraining({
         status: 'error',
-        error: 'Capture pelo menos 2 gestos diferentes e ~20 amostras no total antes de treinar.',
+        error:
+          'Capture pelo menos 2 classes (idealmente «Neutro» + 1 gesto) e ~20 amostras no total antes de treinar.',
       })
       return
     }

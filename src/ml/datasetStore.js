@@ -6,7 +6,7 @@
  * Persiste em localStorage; durante a gravação as amostras ficam em memória e
  * só são persistidas em `commit()` (evita escritas a cada frame).
  */
-import { GESTURE_LABELS } from './labels.js'
+import { TRAINING_LABELS } from './labels.js'
 import { TEMPORAL_FEATURE_LENGTH } from './temporalFeatures.js'
 
 const KEY = 'gestualai.dataset.v2'
@@ -45,7 +45,7 @@ export function commit() {
 /** Contagem de amostras por gesto. */
 export function counts() {
   const c = {}
-  for (const g of GESTURE_LABELS) c[g.id] = data[g.id]?.length || 0
+  for (const g of TRAINING_LABELS) c[g.id] = data[g.id]?.length || 0
   return c
 }
 
@@ -55,7 +55,7 @@ export function totalSamples() {
 
 /** Gestos que já têm pelo menos uma amostra. */
 export function labelsWithData() {
-  return GESTURE_LABELS.filter((g) => (data[g.id]?.length || 0) > 0)
+  return TRAINING_LABELS.filter((g) => (data[g.id]?.length || 0) > 0)
 }
 
 export function clearDataset() {
@@ -70,12 +70,12 @@ export function clearGesture(gestureId) {
 
 /**
  * Constrói os tensores de treino. `ys` são índices de classe alinhados com a
- * ordem de GESTURE_LABELS (i.e., compatíveis com a saída do modelo).
+ * ordem de TRAINING_LABELS (i.e., compatíveis com a saída do modelo).
  */
 export function getTrainingData() {
   const xs = []
   const ys = []
-  GESTURE_LABELS.forEach((g, index) => {
+  TRAINING_LABELS.forEach((g, index) => {
     for (const vec of data[g.id] || []) {
       xs.push(vec)
       ys.push(index)

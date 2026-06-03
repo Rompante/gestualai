@@ -108,18 +108,17 @@ export function useGestureRecognition(options = {}) {
           buffer.push(f63)
           if (buffer.length > WINDOW) buffer.shift()
         }
-        const temporalFeature = buffer.length ? computeTemporalFeature(buffer) : null
+        // O descritor só é fiável com a janela cheia — é a distribuição em que
+        // o modelo é treinado. Com janela parcial, não classifica (evita falsos
+        // disparos no aquecimento) nem captura amostras degeneradas.
+        const temporalFeature = buffer.length === WINDOW ? computeTemporalFeature(buffer) : null
 
         const out = classify(landmarks, temporalFeature)
         gesture = out.gesture
         confidence = out.confidence
         source = out.source
 
-        // Emite o descritor para captura (modo de treino) apenas com a janela
-        // cheia — evita amostras degeneradas (sem movimento) no aquecimento.
-        if (onFeaturesRef.current && temporalFeature && buffer.length === WINDOW) {
-          onFeaturesRef.current(temporalFeature)
-        }
+        if (onFeaturesRef.current && temporalFeature) onFeaturesRef.current(temporalFeature)
       } else {
         // Sem mão: reinicia a janela para não misturar gestos distintos.
         frameBufferRef.current = []

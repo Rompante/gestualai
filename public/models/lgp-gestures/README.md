@@ -19,8 +19,9 @@ alternativa, treine externamente respeitando o contrato abaixo.
 - **Entrada:** tensor `[1, 189]` — descritor espácio-temporal de uma janela de
   frames: média + desvio-padrão + deslocamento dos 63 marcos normalizados
   (ver `src/ml/temporalFeatures.js`).
-- **Saída:** tensor `[1, 20]` — distribuição softmax sobre as 20 classes
-  definidas, **pela mesma ordem** de `src/ml/labels.js`.
+- **Saída:** tensor `[1, 21]` — softmax sobre as 21 classes de treino, **pela
+  ordem** de `TRAINING_LABELS` em `src/ml/labels.js`: os 20 gestos seguidos da
+  classe **neutro** (índice 20 = "sem gesto", não traduzível).
 
 Enquanto este ficheiro não existir, a aplicação usa automaticamente o
 classificador heurístico de demonstração (`src/ml/gestureClassifier.js`).
