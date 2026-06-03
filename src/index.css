@@ -14,13 +14,43 @@ body,
 
 body {
   margin: 0;
-  background: #0b1020;
   color: #e6ebf5;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  /* Fundo profundo com brilhos suaves nas cores da marca. */
+  background-color: #070b18;
+  background-image:
+    radial-gradient(60rem 60rem at 85% -10%, rgba(43, 108, 255, 0.18), transparent 60%),
+    radial-gradient(50rem 50rem at -10% 110%, rgba(19, 198, 165, 0.16), transparent 55%),
+    linear-gradient(180deg, #070b18 0%, #0b1020 100%);
+  background-attachment: fixed;
 }
 
-/* Espelhar o vídeo da câmara (modo selfie) — o canvas de landmarks é espelhado em conjunto. */
+/* Espelhar o vídeo da câmara (modo selfie) — o canvas de landmarks acompanha. */
 .mirror {
   transform: scaleX(-1);
+}
+
+/* Cartão "glass" reutilizável. */
+@layer components {
+  .glass {
+    @apply rounded-2xl bg-white/[0.04] ring-1 ring-white/10 backdrop-blur-sm;
+  }
+}
+
+/* Scrollbar discreta. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
 }

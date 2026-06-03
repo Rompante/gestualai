@@ -41,21 +41,21 @@ export default function CameraView({ videoRef, canvasRef, mirrored = true, onCam
   }
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl bg-black shadow-lg ring-1 ring-white/10">
+    <div className="group relative aspect-video w-full overflow-hidden rounded-3xl bg-ink-900 shadow-card ring-1 ring-white/10">
       <Webcam
         ref={webcamRef}
         audio={false}
         mirrored={mirrored}
         videoConstraints={{ facingMode: 'user', width: 1280, height: 720 }}
         onUserMediaError={handleUserMediaError}
-        className="h-auto w-full"
+        className="h-full w-full object-cover"
       />
       <canvas
         ref={canvasRef}
-        className={`pointer-events-none absolute inset-0 h-full w-full ${
-          mirrored ? 'mirror' : ''
-        }`}
+        className={`pointer-events-none absolute inset-0 h-full w-full ${mirrored ? 'mirror' : ''}`}
       />
+      {/* Vinheta subtil para destacar a sobreposição de marcos. */}
+      <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/10 [box-shadow:inset_0_0_60px_-20px_rgba(0,0,0,0.9)]" />
     </div>
   )
 }

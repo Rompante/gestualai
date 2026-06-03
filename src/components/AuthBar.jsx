@@ -19,9 +19,13 @@ export default function AuthBar() {
 
   if (isAuthenticated) {
     const name = user?.displayName || user?.email || 'Sessão iniciada'
+    const initial = (name || '?').trim().charAt(0).toUpperCase()
     return (
-      <div className="flex items-center gap-3 text-sm">
-        <span className="text-slate-300">{name}</span>
+      <div className="flex items-center gap-2.5 text-sm">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-gradient text-xs font-bold text-white">
+          {initial}
+        </span>
+        <span className="max-w-[10rem] truncate text-slate-300">{name}</span>
         <button
           onClick={logout}
           className="rounded-lg bg-white/10 px-3 py-1.5 font-medium text-slate-200 transition hover:bg-white/20"
@@ -36,8 +40,9 @@ export default function AuthBar() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-600"
+        className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:bg-white/15"
       >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" /></svg>
         Entrar
       </button>
     )
@@ -63,7 +68,7 @@ export default function AuthBar() {
   return (
     <form
       onSubmit={submit}
-      className="flex flex-col gap-2 rounded-xl bg-white/5 p-3 ring-1 ring-white/10 sm:flex-row sm:items-center"
+      className="glass flex animate-fade-in flex-col gap-2 p-3 sm:flex-row sm:items-center"
     >
       <input
         type="email"
@@ -71,7 +76,7 @@ export default function AuthBar() {
         placeholder="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="rounded-lg bg-black/30 px-3 py-1.5 text-sm text-white outline-none ring-1 ring-white/10 focus:ring-brand-500"
+        className="rounded-lg bg-ink-900/70 px-3 py-1.5 text-sm text-white outline-none ring-1 ring-white/10 transition focus:ring-2 focus:ring-brand-500"
       />
       <input
         type="password"
@@ -79,19 +84,19 @@ export default function AuthBar() {
         placeholder="palavra-passe"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="rounded-lg bg-black/30 px-3 py-1.5 text-sm text-white outline-none ring-1 ring-white/10 focus:ring-brand-500"
+        className="rounded-lg bg-ink-900/70 px-3 py-1.5 text-sm text-white outline-none ring-1 ring-white/10 transition focus:ring-2 focus:ring-brand-500"
       />
       <button
         type="submit"
         disabled={busy}
-        className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
+        className="rounded-lg bg-brand-gradient px-4 py-1.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-60"
       >
-        {mode === 'login' ? 'Entrar' : 'Registar'}
+        {busy ? '…' : mode === 'login' ? 'Entrar' : 'Registar'}
       </button>
       <button
         type="button"
         onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-        className="text-xs text-slate-400 underline-offset-2 hover:underline"
+        className="text-xs text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline"
       >
         {mode === 'login' ? 'Criar conta' : 'Já tenho conta'}
       </button>

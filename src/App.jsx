@@ -195,21 +195,29 @@ export default function App() {
   }, [])
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-4 py-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">
-            Gestual<span className="text-accent-500">AI</span>
-          </h1>
-          <p className="text-sm text-slate-400">
-            Tradução de Língua Gestual Portuguesa — processada localmente no seu dispositivo.
-          </p>
+    <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-gradient shadow-glow">
+            <svg viewBox="0 0 24 24" className="h-6 w-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 11V6a1.5 1.5 0 0 1 3 0v4M10 10V4.5a1.5 1.5 0 0 1 3 0V10M13 10.5V6a1.5 1.5 0 0 1 3 0v6.5" />
+              <path d="M16 9.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-1.5a5 5 0 0 1-4-2l-3-4a1.6 1.6 0 0 1 2.5-2L7 12" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white">
+              Gestual<span className="bg-brand-gradient bg-clip-text text-transparent">AI</span>
+            </h1>
+            <p className="text-sm text-slate-400">
+              Língua Gestual Portuguesa — traduzida localmente, em privado.
+            </p>
+          </div>
         </div>
         <AuthBar />
       </header>
 
-      {/* Separadores de modo */}
-      <div className="flex gap-1 rounded-xl bg-white/5 p-1 text-sm font-medium ring-1 ring-white/10 sm:w-fit">
+      {/* Separadores de modo (segmented control) */}
+      <div className="flex w-full gap-1 rounded-2xl bg-white/[0.04] p-1.5 text-sm font-semibold ring-1 ring-white/10 sm:w-fit">
         {[
           ['translate', 'Traduzir'],
           ['train', 'Treinar'],
@@ -217,23 +225,29 @@ export default function App() {
           <button
             key={key}
             onClick={() => setMode(key)}
-            className={`rounded-lg px-4 py-1.5 transition ${
-              mode === key ? 'bg-brand-500 text-white' : 'text-slate-300 hover:text-white'
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-5 py-2 transition sm:flex-none ${
+              mode === key
+                ? 'bg-brand-gradient text-white shadow-glow'
+                : 'text-slate-300 hover:bg-white/5 hover:text-white'
             }`}
           >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={label === 'Treinar' ? 'M12 3v3m0 12v3m9-9h-3M6 12H3m13.5-6.5L14 8M8 16l-2.5 2.5' : 'M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2M7 20h10M9 4v16'} /></svg>
             {label}
           </button>
         ))}
       </div>
 
       {(error || cameraError) && (
-        <div className="rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200 ring-1 ring-red-500/30">
-          {cameraError || error}{' '}
-          {error && !cameraError && 'Verifique a ligação à Internet (modelos MediaPipe via CDN).'}
+        <div className="flex animate-fade-in items-start gap-3 rounded-2xl bg-red-500/10 px-4 py-3 text-sm text-red-200 ring-1 ring-red-500/30">
+          <svg viewBox="0 0 24 24" className="mt-0.5 h-5 w-5 shrink-0 text-red-300" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 8v5M12 16h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" /></svg>
+          <span>
+            {cameraError || error}{' '}
+            {error && !cameraError && 'Verifique a ligação à Internet (modelos MediaPipe via CDN).'}
+          </span>
         </div>
       )}
 
-      <div className="grid flex-1 grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
+      <div className="grid flex-1 grid-cols-1 gap-6 lg:grid-cols-[1.7fr_1fr]">
         <div className="flex flex-col gap-4">
           <CameraView videoRef={videoRef} canvasRef={canvasRef} onCameraError={setCameraError} />
           <ControlBar
@@ -271,10 +285,13 @@ export default function App() {
         )}
       </div>
 
-      <footer className="border-t border-white/10 pt-4 text-xs text-slate-500">
-        <strong className="text-slate-400">Aviso:</strong> ferramenta de apoio à comunicação
-        informal. Não substitui intérpretes de LGP em contextos formais ou críticos. Nenhum vídeo é
-        enviado para a nuvem — todo o processamento ocorre no seu dispositivo.
+      <footer className="flex items-start gap-2.5 border-t border-white/10 pt-4 text-xs text-slate-500">
+        <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0 text-accent-500/80" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2 4 5v6c0 5 3.5 8 8 11 4.5-3 8-6 8-11V5l-8-3Z" /></svg>
+        <span>
+          <strong className="text-slate-400">Privado e informal.</strong> Nenhum vídeo sai do
+          dispositivo. Ferramenta de apoio à comunicação — não substitui intérpretes de LGP em
+          contextos formais ou críticos.
+        </span>
       </footer>
     </div>
   )
